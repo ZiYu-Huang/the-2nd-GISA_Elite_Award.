@@ -12,12 +12,16 @@
  * ────────────────────────────────────────────────────────────────
  *
  * 首次安裝：
- *   1) 在目標 Google 試算表 → 擴充功能 → Apps Script，貼上本檔。
- *   2) 執行一次 setupSheets()（會建立所有工作表、寫入今年名單、產生後台金鑰）。
- *   3) 部署 → 新增部署作業 → 網頁應用程式
+ *   1) 在目標 Google 試算表 → 擴充功能 → Apps Script，貼上本檔並存檔。
+ *   2) ★ 工具列中間的「函式選擇器」要選 setupSheets ★
+ *      （編輯器預設會選檔案的第一個函式；本檔已把 setupSheets 排在第一個，
+ *        但貼上後仍請確認一次，選到 doGet 按執行是不會建立任何東西的。）
+ *      按「執行」→ 第一次會要求授權，允許即可。
+ *   3) 回試算表重新整理頁面，上方會出現「GISA 評分系統」選單。
+ *   4) 部署 → 新增部署作業 → 網頁應用程式
  *      - 執行身分：我
  *      - 誰可以存取：任何人
- *   4) 把 /exec 網址填進 index.html、admin.html 的 API_URL。
+ *   5) 把 /exec 網址填進 index.html、admin.html 的 API_URL。
  */
 
 /* ═══════════════════════ 基本設定 ═══════════════════════ */
@@ -89,10 +93,287 @@ var P_ADMIN_KEY = 'ADMIN_KEY';
 var C_ROWMAP    = 'ROWMAP_V2';
 var C_LISTS     = 'LISTS_V2';
 
+/* ═══════════════════════════════════════════════════════════════════
+   安裝 / 維護
+   ───────────────────────────────────────────────────────────────────
+   ★ setupSheets 刻意放在整份檔案的「第一個函式」，因為 Apps Script
+     編輯器預設會選檔案裡的第一個函式。這樣按「執行」就是跑安裝，
+     不會誤跑到 doGet（跑 doGet 不會報錯，但也什麼都不會建立）。
+   ★ 安裝完成後，試算表上方會多一個「GISA 評分系統」選單，
+     之後所有維護動作都能從試算表直接做，不必再進這個編輯器。
+   ═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * 【第一步就是執行這個】
+ * 建立所有工作表、寫入今年度名單、產生後台金鑰。
+ * 可重複執行：已存在的工作表不會被覆寫，只補上缺的表頭。
+ */
+function setupSheets() {
+  var book = ss();
+
+  // 1) 公司名單
+  var cs = book.getSheetByName(SHEETS.COMPANIES);
+  if (!cs) {
+    cs = book.insertSheet(SHEETS.COMPANIES);
+    cs.getRange(1, 1, 1, 2).setValues([['簡報順序', '決選公司']]);
+    var crows = COMPANIES_2026.map(function (name, i) { return [i + 1, name]; });
+    cs.getRange(2, 1, crows.length, 2).setValues(crows);
+    cs.setFrozenRows(1);
+    cs.getRange(1, 1, 1, 2).setFontWeight('bold');
+    cs.autoResizeColumns(1, 2);
+  }
+
+  // 2) 評審名單
+  var js = book.getSheetByName(SHEETS.JUDGES);
+  if (!js) {
+    js = book.insertSheet(SHEETS.JUDGES);
+    js.getRange(1, 1, 1, 3).setValues([['單位', '評審', '專屬連結']]);
+    js.getRange(2, 1, JUDGES_2026.length, 2).setValues(JUDGES_2026);
+    js.setFrozenRows(1);
+    js.getRange(1, 1, 1, 3).setFontWeight('bold');
+    js.autoResizeColumns(1, 3);
+  }
+
+  // 3) 評分明細
+  var sc = book.getSheetByName(SHEETS.SCORES);
+  if (!sc) {
+    sc = book.insertSheet(SHEETS.SCORES);
+    sc.getRange(1, 1, 1, SCORE_WIDTH).setValues([SCORE_HEADERS]);
+    sc.setFrozenRows(1);
+    sc.getRange(1, 1, 1, SCORE_WIDTH).setFontWeight('bold');
+  }
+
+  // 4) 最終確認
+  var cf = book.getSheetByName(SHEETS.CONFIRM);
+  if (!cf) {
+    cf = book.insertSheet(SHEETS.CONFIRM);
+    cf.getRange(1, 1, 1, CONFIRM_HEADERS.length).setValues([CONFIRM_HEADERS]);
+    cf.setFrozenRows(1);
+    cf.getRange(1, 1, 1, CONFIRM_HEADERS.length).setFontWeight('bold');
+  }
+
+  // 5) 後台金鑰
+  var key = PROPS.getProperty(P_ADMIN_KEY);
+  if (!key) {
+    key = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+    PROPS.setProperty(P_ADMIN_KEY, key);
+  }
+  if (!PROPS.getProperty(P_VERSION)) PROPS.setProperty(P_VERSION, '1');
+
+  // 6) 設定表（把金鑰放在人一定看得到的地方）
+  var cg = book.getSheetByName(SHEETS.CONFIG);
+  if (!cg) cg = book.insertSheet(SHEETS.CONFIG);
+  cg.clear();
+  cg.getRange(1, 1, 6, 2).setValues([
+    ['項目', '內容'],
+    ['後台金鑰 ADMIN_KEY', key],
+    ['後台網址', (PROPS.getProperty('BASE_URL') || 'https://<你的帳號>.github.io/<repo>/') + 'admin.html?key=' + key],
+    ['評審連結格式', (PROPS.getProperty('BASE_URL') || 'https://<你的帳號>.github.io/<repo>/') + '?judge=<評審姓名>'],
+    ['資料版本', '由系統自動維護，請勿手動修改'],
+    ['說明', '修改「公司名單」或「評審名單」後，最多 5 分鐘生效；要立即生效請用選單「重新整理名單快取」']
+  ]);
+  cg.getRange(1, 1, 1, 2).setFontWeight('bold');
+  cg.getRange(2, 2).setFontWeight('bold').setFontSize(13).setBackground('#fff7e6');
+  cg.setFrozenRows(1);
+  cg.setColumnWidth(1, 200);
+  cg.setColumnWidth(2, 640);
+
+  // 把「設定」移到第一個分頁，避免被擠到分頁列右邊看不到
+  book.setActiveSheet(cg);
+  book.moveActiveSheet(1);
+
+  // 移掉新試算表預設的空白工作表
+  book.getSheets().forEach(function (s) {
+    var n = s.getName();
+    if ((n === 'Sheet1' || n === '工作表1') && s.getLastRow() === 0 &&
+        book.getSheets().length > 1) {
+      book.deleteSheet(s);
+    }
+  });
+
+  buildJudgeLinks();
+  clearCaches();
+
+  Logger.log('安裝完成。後台金鑰 ADMIN_KEY = %s', key);
+  uiAlert('安裝完成',
+    '已建立 5 個工作表，並寫入 ' + COMPANIES_2026.length + ' 家公司與 ' +
+    JUDGES_2026.length + ' 位評審。\n\n' +
+    '後台金鑰（ADMIN_KEY）：\n' + key + '\n\n' +
+    '這組金鑰也寫在「設定」工作表的 B2（已移到第一個分頁）。\n' +
+    '請重新整理試算表頁面，上方會出現「GISA 評分系統」選單。');
+  return key;
+}
+
+/** 試算表開啟時建立操作選單，之後不必再進 Apps Script 編輯器。 */
+function onOpen() {
+  try {
+    SpreadsheetApp.getUi()
+      .createMenu('GISA 評分系統')
+      .addItem('顯示後台金鑰', 'showAdminKey')
+      .addItem('設定 GitHub Pages 網址', 'promptBaseUrl')
+      .addSeparator()
+      .addItem('重新整理名單快取', 'clearCachesUi')
+      .addItem('重新執行安裝（可重複執行）', 'setupSheets')
+      .addSeparator()
+      .addItem('解除某位評審的最終確認', 'promptUnlockJudge')
+      .addItem('清空所有評分（彩排後用）', 'resetAllScoresUi')
+      .addToUi();
+  } catch (ignore) {}
+}
+
+/** 有 UI 就跳視窗；沒有（例如被觸發器呼叫）就只寫執行記錄，不會中斷流程。 */
+function uiAlert(title, message) {
+  Logger.log('%s：%s', title, message);
+  try {
+    SpreadsheetApp.getUi().alert(title, message, SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (ignore) {}
+}
+
+/** 顯示後台金鑰。 */
+function showAdminKey() {
+  var key = PROPS.getProperty(P_ADMIN_KEY);
+  if (!key) {
+    uiAlert('尚未安裝', '找不到後台金鑰，請先執行 setupSheets()。');
+    return '';
+  }
+  var base = PROPS.getProperty('BASE_URL') || 'https://<你的帳號>.github.io/<repo>/';
+  uiAlert('後台金鑰', key + '\n\n後台網址：\n' + base + 'admin.html?key=' + key);
+  return key;
+}
+
+/** 從選單輸入 GitHub Pages 網址，並回填各評審的專屬連結。 */
+function promptBaseUrl() {
+  var ui = SpreadsheetApp.getUi();
+  var cur = PROPS.getProperty('BASE_URL') || '';
+  var res = ui.prompt('設定 GitHub Pages 網址',
+    '請貼上評分系統首頁網址（結尾要有 /），例如：\n' +
+    'https://ziyu-huang.github.io/the-2nd-GISA_Elite_Award./\n\n' +
+    (cur ? '目前設定：' + cur : '目前尚未設定'),
+    ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+  var url = res.getResponseText().trim();
+  if (!url) return;
+  if (url.slice(-1) !== '/') url += '/';
+  setBaseUrl(url);
+  uiAlert('已設定', '網址：' + url + '\n\n各評審的專屬連結已回填到「評審名單」C 欄。');
+}
+
+/** 設定 GitHub Pages 網址後重建評審連結（也可直接在編輯器呼叫）。 */
+function setBaseUrl(url) {
+  PROPS.setProperty('BASE_URL', url);
+  buildJudgeLinks();
+  clearCaches();
+  var key = PROPS.getProperty(P_ADMIN_KEY);
+  var cg = ss().getSheetByName(SHEETS.CONFIG);
+  if (cg && key) {
+    cg.getRange(3, 2).setValue(url + 'admin.html?key=' + key);
+    cg.getRange(4, 2).setValue(url + '?judge=<評審姓名>');
+  }
+}
+
+/** 在「評審名單」C 欄填入各評審的專屬連結。 */
+function buildJudgeLinks() {
+  var base = PROPS.getProperty('BASE_URL') || 'https://<你的帳號>.github.io/<repo>/';
+  var js = sheet(SHEETS.JUDGES);
+  var last = js.getLastRow();
+  if (last < 2) return;
+  var names = js.getRange(2, 2, last - 1, 1).getValues();
+  var links = names.map(function (r) {
+    var n = String(r[0] || '').trim();
+    return [n ? base + '?judge=' + encodeURIComponent(n) : ''];
+  });
+  js.getRange(2, 3, links.length, 1).setValues(links);
+}
+
+/** 名單改過、或資料手動編輯過之後，執行這個讓快取立即失效。 */
+function clearCaches() {
+  CACHE.remove(C_ROWMAP);
+  CACHE.remove(C_LISTS);
+  bumpVersion();
+}
+function clearCachesUi() {
+  clearCaches();
+  uiAlert('已重新整理', '公司名單與評審名單的快取已清除，變更立即生效。');
+}
+
+/**
+ * 清空本年度所有評分（正式活動前的彩排資料清除用）。
+ * 只清「評分明細」與「最終確認」的資料列，名單與表頭保留。
+ */
+function resetAllScores() {
+  var sc = sheet(SHEETS.SCORES);
+  if (sc.getLastRow() > 1) sc.deleteRows(2, sc.getLastRow() - 1);
+  var cf = sheet(SHEETS.CONFIRM);
+  if (cf.getLastRow() > 1) cf.deleteRows(2, cf.getLastRow() - 1);
+  clearCaches();
+  Logger.log('已清空所有評分資料。');
+}
+function resetAllScoresUi() {
+  var ui = SpreadsheetApp.getUi();
+  var res = ui.alert('清空所有評分',
+    '這會刪除「評分明細」與「最終確認」的全部資料列，且無法復原。\n確定要繼續嗎？',
+    ui.ButtonSet.YES_NO);
+  if (res !== ui.Button.YES) return;
+  resetAllScores();
+  uiAlert('已清空', '所有評分與最終確認紀錄都已刪除，可以開始正式活動了。');
+}
+
+/** 從選單解除某位評審的最終確認鎖定。 */
+function promptUnlockJudge() {
+  var ui = SpreadsheetApp.getUi();
+  var res = ui.prompt('解除最終確認',
+    '請輸入要重新開放修改的評審姓名（需與「評審名單」完全一致）：',
+    ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+  var name = res.getResponseText().trim();
+  if (!name) return;
+  var n = doUnlockJudge(name);
+  uiAlert('已解除', name + ' 的最終確認已解除，可以重新修改分數。（清除 ' + n + ' 筆確認紀錄）');
+}
+
+/**
+ * 解除某位評審的最終確認鎖定。
+ * 在編輯器手動執行時，先把 JUDGE_TO_UNLOCK 改成該評審姓名。
+ */
+var JUDGE_TO_UNLOCK = '';
+function unlockJudge() {
+  var judge = String(JUDGE_TO_UNLOCK || '').trim();
+  if (!judge) throw new Error('請先把 JUDGE_TO_UNLOCK 設成要解鎖的評審姓名，或改用試算表選單。');
+  doUnlockJudge(judge);
+  Logger.log('已解除 %s 的最終確認鎖定。', judge);
+}
+
+function doUnlockJudge(judge) {
+  var removed = 0;
+  var cf = sheet(SHEETS.CONFIRM);
+  for (var i = cf.getLastRow(); i >= 2; i--) {
+    if (String(cf.getRange(i, 2).getValue()).trim() === judge) { cf.deleteRow(i); removed++; }
+  }
+  var sc = sheet(SHEETS.SCORES);
+  var slast = sc.getLastRow();
+  if (slast >= 2) {
+    var vals = sc.getRange(2, COL.JUDGE, slast - 1, 1).getValues();
+    for (var k = 0; k < vals.length; k++) {
+      if (String(vals[k][0]).trim() === judge) {
+        sc.getRange(k + 2, COL.CONFIRMED, 1, 2).setValues([['', '']]);
+      }
+    }
+  }
+  clearCaches();
+  return removed;
+}
+
 /* ═══════════════════════ 入口 ═══════════════════════ */
 
 function doGet(e) {
-  var p = (e && e.parameter) || {};
+  // 在編輯器手動按「執行」時 e 是 undefined。以前這種情況會安靜地回傳
+  // 一個錯誤物件，看起來像「執行完畢」卻什麼都沒發生 —— 這裡直接擋下並說清楚。
+  if (!e || !e.parameter) {
+    throw new Error(
+      'doGet 是給網頁前端呼叫的，不能在編輯器手動執行。\n' +
+      '要安裝請把工具列的函式選擇器改成 setupSheets 再按「執行」。');
+  }
+  var p = e.parameter;
   var out;
   try {
     out = route(p);
@@ -514,158 +795,3 @@ function apiAdmin(p) {
   };
 }
 
-/* ═══════════════════════ 安裝 / 維護 ═══════════════════════ */
-
-/**
- * 建立所有工作表、寫入今年度名單、產生後台金鑰。
- * 可重複執行：已存在的工作表不會被覆寫，只補上缺的表頭。
- */
-function setupSheets() {
-  var book = ss();
-
-  // 1) 公司名單
-  var cs = book.getSheetByName(SHEETS.COMPANIES);
-  if (!cs) {
-    cs = book.insertSheet(SHEETS.COMPANIES);
-    cs.getRange(1, 1, 1, 2).setValues([['簡報順序', '決選公司']]);
-    var crows = COMPANIES_2026.map(function (name, i) { return [i + 1, name]; });
-    cs.getRange(2, 1, crows.length, 2).setValues(crows);
-    cs.setFrozenRows(1);
-    cs.autoResizeColumns(1, 2);
-  }
-
-  // 2) 評審名單
-  var js = book.getSheetByName(SHEETS.JUDGES);
-  if (!js) {
-    js = book.insertSheet(SHEETS.JUDGES);
-    js.getRange(1, 1, 1, 3).setValues([['單位', '評審', '專屬連結']]);
-    js.getRange(2, 1, JUDGES_2026.length, 2).setValues(JUDGES_2026);
-    js.setFrozenRows(1);
-    js.autoResizeColumns(1, 3);
-  }
-
-  // 3) 評分明細
-  var sc = book.getSheetByName(SHEETS.SCORES);
-  if (!sc) {
-    sc = book.insertSheet(SHEETS.SCORES);
-    sc.getRange(1, 1, 1, SCORE_WIDTH).setValues([SCORE_HEADERS]);
-    sc.setFrozenRows(1);
-    sc.getRange(1, 1, 1, SCORE_WIDTH).setFontWeight('bold');
-  }
-
-  // 4) 最終確認
-  var cf = book.getSheetByName(SHEETS.CONFIRM);
-  if (!cf) {
-    cf = book.insertSheet(SHEETS.CONFIRM);
-    cf.getRange(1, 1, 1, CONFIRM_HEADERS.length).setValues([CONFIRM_HEADERS]);
-    cf.setFrozenRows(1);
-    cf.getRange(1, 1, 1, CONFIRM_HEADERS.length).setFontWeight('bold');
-  }
-
-  // 5) 後台金鑰
-  var key = PROPS.getProperty(P_ADMIN_KEY);
-  if (!key) {
-    key = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
-    PROPS.setProperty(P_ADMIN_KEY, key);
-  }
-  if (!PROPS.getProperty(P_VERSION)) PROPS.setProperty(P_VERSION, '1');
-
-  // 6) 設定表（把金鑰與說明放在人看得到的地方）
-  var cg = book.getSheetByName(SHEETS.CONFIG);
-  if (!cg) cg = book.insertSheet(SHEETS.CONFIG);
-  cg.clear();
-  cg.getRange(1, 1, 6, 2).setValues([
-    ['項目', '內容'],
-    ['後台金鑰 ADMIN_KEY', key],
-    ['後台網址', 'https://<你的帳號>.github.io/<repo>/admin.html?key=' + key],
-    ['評審連結格式', 'https://<你的帳號>.github.io/<repo>/?judge=<評審姓名 URL 編碼>'],
-    ['資料版本', '由系統自動維護，請勿手動修改'],
-    ['說明', '修改「公司名單」或「評審名單」後，最多 5 分鐘生效；要立即生效請執行 clearCaches()']
-  ]);
-  cg.getRange(1, 1, 1, 2).setFontWeight('bold');
-  cg.setColumnWidth(1, 200);
-  cg.setColumnWidth(2, 620);
-
-  buildJudgeLinks();
-  clearCaches();
-
-  Logger.log('完成。後台金鑰 ADMIN_KEY = %s', key);
-  return key;
-}
-
-/** 在「評審名單」填入各評審的專屬連結（需先在 C1 上方設定 BASE_URL）。 */
-function buildJudgeLinks() {
-  var base = PROPS.getProperty('BASE_URL') || 'https://ZiYu-Huang.github.io/the-2nd-GISA_Elite_Award./';
-  var js = sheet(SHEETS.JUDGES);
-  var last = js.getLastRow();
-  if (last < 2) return;
-  var names = js.getRange(2, 2, last - 1, 1).getValues();
-  var links = names.map(function (r) {
-    var n = String(r[0] || '').trim();
-    return [n ? base + '?judge=' + encodeURIComponent(n) : ''];
-  });
-  js.getRange(2, 3, links.length, 1).setValues(links);
-}
-
-/** 設定 GitHub Pages 網址後重建評審連結。 */
-function setBaseUrl(url) {
-  PROPS.setProperty('BASE_URL', url);
-  buildJudgeLinks();
-  clearCaches();
-}
-
-/** 名單改過、或資料手動編輯過之後，執行這個讓快取立即失效。 */
-function clearCaches() {
-  CACHE.remove(C_ROWMAP);
-  CACHE.remove(C_LISTS);
-  bumpVersion();
-}
-
-/** 取得後台金鑰（忘記時執行）。 */
-function showAdminKey() {
-  var key = PROPS.getProperty(P_ADMIN_KEY);
-  Logger.log('ADMIN_KEY = %s', key);
-  return key;
-}
-
-/**
- * 解除某位評審的最終確認鎖定（例如按錯了，需要重新開放修改）。
- * 用法：在編輯器選這個函式，先把 JUDGE_TO_UNLOCK 改成該評審姓名再執行。
- */
-var JUDGE_TO_UNLOCK = '';
-function unlockJudge() {
-  var judge = String(JUDGE_TO_UNLOCK || '').trim();
-  if (!judge) throw new Error('請先設定 JUDGE_TO_UNLOCK 為要解鎖的評審姓名。');
-
-  var cf = sheet(SHEETS.CONFIRM);
-  var last = cf.getLastRow();
-  for (var i = last; i >= 2; i--) {
-    if (String(cf.getRange(i, 2).getValue()).trim() === judge) cf.deleteRow(i);
-  }
-
-  var sc = sheet(SHEETS.SCORES);
-  var slast = sc.getLastRow();
-  if (slast >= 2) {
-    var vals = sc.getRange(2, COL.JUDGE, slast - 1, 1).getValues();
-    for (var k = 0; k < vals.length; k++) {
-      if (String(vals[k][0]).trim() === judge) {
-        sc.getRange(k + 2, COL.CONFIRMED, 1, 2).setValues([['', '']]);
-      }
-    }
-  }
-  clearCaches();
-  Logger.log('已解除 %s 的最終確認鎖定。', judge);
-}
-
-/**
- * 清空本年度所有評分（正式活動前的彩排資料清除用）。
- * 只清「評分明細」與「最終確認」的資料列，名單與表頭保留。
- */
-function resetAllScores() {
-  var sc = sheet(SHEETS.SCORES);
-  if (sc.getLastRow() > 1) sc.deleteRows(2, sc.getLastRow() - 1);
-  var cf = sheet(SHEETS.CONFIRM);
-  if (cf.getLastRow() > 1) cf.deleteRows(2, cf.getLastRow() - 1);
-  clearCaches();
-  Logger.log('已清空所有評分資料。');
-}
