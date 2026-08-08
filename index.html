@@ -47,22 +47,72 @@ button{cursor:pointer;border:none;background:none}
 :focus-visible{outline:3px solid var(--navy-600);outline-offset:2px;border-radius:4px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* ═══════════════ 頁首 ═══════════════ */
+/* ═══════════════ 頁首（2026 主視覺）═══════════════
+   預設用 CSS 重現官網的深藍星空 + 青綠光束 + 金色斜線。
+   若在下方 JS 的 BANNER_URL 填入官網主視覺圖片網址，會自動改用該圖。 */
 .hero{
   position:relative;
-  background:
-    radial-gradient(1200px 400px at 15% -10%, rgba(200,163,74,.22), transparent 60%),
-    radial-gradient(900px 380px at 90% 0%, rgba(26,85,159,.55), transparent 55%),
-    linear-gradient(135deg,var(--navy-900) 0%, var(--navy-800) 45%, var(--navy-700) 100%);
   color:#fff;
-  padding:22px 20px 26px;
+  padding:26px 20px 30px;
   overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 78% 55%, rgba(24,214,190,.30), transparent 58%),
+    radial-gradient(90% 70% at 22% 78%, rgba(38,196,255,.26), transparent 62%),
+    radial-gradient(70% 60% at 50% -20%, rgba(28,86,168,.55), transparent 70%),
+    linear-gradient(118deg,#03153a 0%, #052255 42%, #06305f 68%, #073d4e 100%);
 }
+/* 青綠光束：兩道對角柔光 */
+.hero::before{
+  content:"";position:absolute;inset:-30% -10%;pointer-events:none;
+  background:
+    linear-gradient(102deg, transparent 34%, rgba(120,255,235,.20) 44%, rgba(60,220,255,.05) 52%, transparent 60%),
+    linear-gradient(76deg,  transparent 52%, rgba(90,235,255,.16) 61%, transparent 70%);
+  filter:blur(1px);
+}
+/* 金色斜線群（右側）＋ 底部金線 */
 .hero::after{
-  content:"";position:absolute;inset:auto 0 0 0;height:3px;
-  background:linear-gradient(90deg,transparent,var(--gold-500),var(--gold-300),var(--gold-500),transparent);
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(64deg,
+      transparent 0 16px,
+      rgba(214,176,84,.55) 16px 17.4px,
+      transparent 17.4px 34px) right center / 46% 100% no-repeat,
+    linear-gradient(90deg,transparent,var(--gold-500),var(--gold-300),var(--gold-500),transparent) bottom / 100% 3px no-repeat;
+  -webkit-mask-image:linear-gradient(90deg,transparent 46%,#000 78%),none;
+          mask-image:linear-gradient(90deg,transparent 46%,#000 78%),none;
+  -webkit-mask-composite:source-over;
+  opacity:.85;
 }
-.hero-inner{max-width:1120px;margin:0 auto;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+/* 星點 */
+.hero-stars{
+  position:absolute;inset:0;pointer-events:none;opacity:.7;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 22%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 27% 68%, #cfefff, transparent),
+    radial-gradient(1.6px 1.6px at 41% 15%, #fff, transparent),
+    radial-gradient(1.1px 1.1px at 55% 82%, #bff3e6, transparent),
+    radial-gradient(1.5px 1.5px at 63% 38%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 74% 72%, #d9f4ff, transparent),
+    radial-gradient(1.3px 1.3px at 86% 28%, #fff, transparent),
+    radial-gradient(1.1px 1.1px at 93% 60%, #b9f0dd, transparent),
+    radial-gradient(1.2px 1.2px at 6% 52%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 34% 44%, #eaf9ff, transparent);
+}
+/* 若有指定圖片就疊上去（見 JS 的 BANNER_URL） */
+.hero.has-img{background:#03153a}
+.hero.has-img::before,.hero.has-img .hero-stars{display:none}
+.hero-img{
+  position:absolute;inset:0;pointer-events:none;
+  background-position:center;background-size:cover;background-repeat:no-repeat;
+}
+.hero.has-img .hero-inner{
+  background:linear-gradient(90deg, rgba(3,21,58,.82) 0%, rgba(3,21,58,.62) 55%, rgba(3,21,58,.30) 100%);
+  border-radius:16px;padding:14px 18px;backdrop-filter:blur(1px);
+}
+.hero-inner{
+  position:relative;z-index:2;
+  max-width:1120px;margin:0 auto;display:flex;gap:20px;align-items:center;flex-wrap:wrap;
+}
 .hero-mark{
   flex:0 0 auto;width:58px;height:58px;border-radius:14px;
   background:linear-gradient(150deg,var(--gold-300),var(--gold-500));
@@ -84,15 +134,20 @@ button{cursor:pointer;border:none;background:none}
 .judge-chip .who{font-weight:700;font-size:15px}
 .judge-chip .org{font-size:11.5px;color:#c3d3e8;margin-top:1px}
 
-.ring{position:relative;width:62px;height:62px;flex:0 0 auto}
+.ring{position:relative;width:78px;height:78px;flex:0 0 auto}
 .ring svg{transform:rotate(-90deg);display:block}
 .ring .track{stroke:rgba(255,255,255,.2)}
 .ring .bar{stroke:var(--gold-300);stroke-linecap:round;transition:stroke-dasharray .45s cubic-bezier(.4,0,.2,1)}
 .ring .lbl{
-  position:absolute;inset:0;display:grid;place-items:center;
-  font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  line-height:1;text-align:center;
 }
-.ring .lbl small{font-weight:600;font-size:9.5px;color:#c3d3e8;display:block;text-align:center}
+.ring .lbl b{
+  font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;
+  letter-spacing:-.3px;white-space:nowrap;
+}
+.ring .lbl small{font-weight:700;font-size:10px;color:#c3d3e8;letter-spacing:.5px}
 
 /* ═══════════════ 版面 ═══════════════ */
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
@@ -171,8 +226,14 @@ button{cursor:pointer;border:none;background:none}
   font-size:11px;font-weight:800;color:#fff;background:var(--c);
   border-radius:5px;padding:2px 6px;letter-spacing:.5px;flex:0 0 auto;
 }
-.dim-name{font-size:15.5px;font-weight:800;letter-spacing:.2px}
-.dim-max{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--ink-3);white-space:nowrap}
+.dim-name{font-size:16.5px;font-weight:800;letter-spacing:.2px}
+.dim-max{
+  margin-left:auto;white-space:nowrap;
+  font-size:14px;font-weight:800;color:var(--c);
+  background:color-mix(in srgb,var(--c) 12%,transparent);
+  border:1.5px solid color-mix(in srgb,var(--c) 42%,transparent);
+  border-radius:8px;padding:3px 10px;
+}
 .dim-row{display:flex;align-items:center;gap:8px}
 .stepper{
   flex:0 0 auto;width:38px;height:44px;border-radius:10px;
@@ -396,7 +457,9 @@ table.grid tr:last-child td{border-bottom:none}
 </head>
 <body>
 
-<header class="hero">
+<header class="hero" id="hero">
+  <div class="hero-stars" aria-hidden="true"></div>
+  <div class="hero-img" id="heroImg" aria-hidden="true" hidden></div>
   <div class="hero-inner">
     <div class="hero-mark">GISA<br>菁英</div>
     <div class="hero-txt">
@@ -412,12 +475,12 @@ table.grid tr:last-child td{border-bottom:none}
         </div>
       </div>
       <div class="ring" title="評分進度">
-        <svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
-          <circle class="track" cx="31" cy="31" r="26" fill="none" stroke-width="6"></circle>
-          <circle class="bar" id="ringBar" cx="31" cy="31" r="26" fill="none" stroke-width="6"
-                  stroke-dasharray="0 163.4"></circle>
+        <svg width="78" height="78" viewBox="0 0 78 78" aria-hidden="true">
+          <circle class="track" cx="39" cy="39" r="33" fill="none" stroke-width="6"></circle>
+          <circle class="bar" id="ringBar" cx="39" cy="39" r="33" fill="none" stroke-width="6"
+                  stroke-dasharray="0 207.3"></circle>
         </svg>
-        <div class="lbl"><span id="ringTxt">0/0</span><small>已評</small></div>
+        <div class="lbl"><b id="ringTxt">0/0</b><small>已評</small></div>
       </div>
     </div>
   </div>
@@ -483,12 +546,30 @@ table.grid tr:last-child td{border-bottom:none}
     </div>
     <div class="tbar" id="tbar" aria-hidden="true"></div>
     <button class="btn btn-primary" id="btnSave" type="button">送出評分</button>
+    <button class="btn btn-ghost" id="btnList" type="button">查看所有公司評分</button>
     <button class="btn btn-gold" id="btnFinal" type="button">最終確認</button>
     <div class="dock-msg" id="msg" role="status" aria-live="polite"></div>
   </div>
 </div>
 
 <div class="netbar" id="netbar" role="alert"></div>
+
+<!-- 查看所有公司評分（從底部按鈕開啟，不必捲動）-->
+<div class="modal" id="listModal" role="dialog" aria-modal="true" aria-labelledby="listTitle">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="listTitle">我的評分總覽</h2>
+      <button class="x" id="listClose" type="button" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="status-strip" id="listStatus"></div>
+      <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:12px" id="listModalBody"></div>
+    </div>
+    <div class="modal-foot" style="display:flex;justify-content:flex-end">
+      <button class="btn btn-ghost" id="listClose2" type="button">關閉</button>
+    </div>
+  </div>
+</div>
 
 <!-- 最終確認 -->
 <div class="modal" id="finalModal" role="dialog" aria-modal="true" aria-labelledby="finalTitle">
@@ -547,6 +628,13 @@ table.grid tr:last-child td{border-bottom:none}
    設定：部署後只需要改這一行
    ═══════════════════════════════════════════════════════════ */
 var API_URL = 'https://script.google.com/macros/s/AKfycbwc5y9LCuvER_FJZFvXh3irojGWSZuIkcy-BUbsjpZXksu9FjXyU3iURrv0rRehN3Hlqg/exec';   // ← 貼上 Apps Script 網頁應用程式的 /exec 網址
+
+/* 頁首主視覺圖片（可留空）
+   留空 → 使用內建的 CSS 版 2026 主視覺（深藍星空＋青綠光束＋金色斜線）。
+   要換成官網真圖時二選一：
+     (a) 把圖片放進 assets/ 資料夾，填 'assets/banner.jpg'
+     (b) 在官網圖片上按右鍵「複製圖片位址」，把網址整段貼進來             */
+var BANNER_URL = '';
 
 /* ═══════════════════════ 常數 ═══════════════════════ */
 var DIMS = [
@@ -828,8 +916,9 @@ function paintRail(){
   });
   var done = countDone();
   var total = state.projects.length;
-  var C = 2 * Math.PI * 26;
-  $('#ringBar').setAttribute('stroke-dasharray', (total ? done/total*C : 0) + ' ' + C);
+  var bar = $('#ringBar');
+  var C = 2 * Math.PI * Number(bar.getAttribute('r'));   // 半徑改了也不用改這裡
+  bar.setAttribute('stroke-dasharray', (total ? done/total*C : 0) + ' ' + C);
   $('#ringTxt').textContent = done + '/' + total;
   $('#btnFinal').disabled = state.locked || total === 0;
 }
@@ -941,12 +1030,11 @@ function rankedList(){
 }
 
 /* ═══════════════════════ 我的評分總覽 ═══════════════════════ */
-function paintList(){
+/** 產生「我的評分總覽」表格 HTML；同時給頁面內的卡片與底部按鈕的彈窗使用。 */
+function listHtml(){
   var data = rankedList();
-  var body = $('#listBody');
   if (!data.scored.length){
-    body.innerHTML = '<div class="empty">尚無評分紀錄。完成第一家公司的評分並送出後，這裡會即時顯示排序與名次。</div>';
-    return;
+    return '<div class="empty">尚無評分紀錄。完成第一家公司的評分並送出後，這裡會即時顯示排序與名次。</div>';
   }
   var rows = data.scored.map(function(r){
     return '<tr class="' + (r.id === state.current ? 'is-current' : '') + '">' +
@@ -968,20 +1056,46 @@ function paintList(){
       '</td></tr>'
     : '';
 
-  body.innerHTML =
-    '<table class="grid"><thead><tr>' +
+  return '<table class="grid"><thead><tr>' +
       '<th>順序</th><th>決選公司</th><th>構面分布</th>' +
       '<th style="text-align:right">總分</th><th style="text-align:center">名次</th>' +
       '<th>最後更新</th><th>操作</th>' +
     '</tr></thead><tbody>' + rows + missingRow + '</tbody></table>';
+}
 
-  body.querySelectorAll('[data-goto]').forEach(function(b){
+/** 綁定「檢視」按鈕：切換到該公司並帶出既有分數。 */
+function bindGoto(root, closeModalFirst){
+  root.querySelectorAll('[data-goto]').forEach(function(b){
     b.addEventListener('click', function(){
+      if (closeModalFirst) closeListModal();
       selectProject(b.dataset.goto, true);
       window.scrollTo({ top:0, behavior:'smooth' });
     });
   });
 }
+
+function paintList(){
+  var body = $('#listBody');
+  body.innerHTML = listHtml();
+  bindGoto(body, false);
+  if ($('#listModal').classList.contains('open')) renderListModal();
+}
+
+function renderListModal(){
+  var data = rankedList();
+  var done = data.scored.length, total = state.projects.length;
+  var strip = $('#listStatus');
+  strip.className = 'status-strip ' + (done >= total && total ? 'good' : 'bad');
+  strip.innerHTML = (done >= total && total)
+    ? '<span>✓</span><span>已完成全部 <span class="big">' + total + '</span> 家公司的評分。</span>'
+    : '<span>!</span><span>已評 <span class="big">' + done + '</span> / ' + total +
+      ' 家，尚有 <b>' + (total - done) + '</b> 家未評分。</span>';
+  var body = $('#listModalBody');
+  body.innerHTML = listHtml();
+  bindGoto(body, true);
+}
+function openListModal(){ renderListModal(); $('#listModal').classList.add('open'); }
+function closeListModal(){ $('#listModal').classList.remove('open'); }
 /** 五構面得分比例的小型長條（配合表格內的數字，非唯一資訊來源）。 */
 function miniBars(scores){
   if (!scores) return '';
@@ -1162,7 +1276,7 @@ function doConfirm(){
       state.confirmedAt = res.confirmedAt || Date.now();
       cacheBoot();
       closeFinal();
-      showDone();
+      applyLock();
     })
     .catch(function(err){
       $('#finalMsg').textContent = err.message || '送出失敗，請再試一次。';
@@ -1179,17 +1293,28 @@ function showDone(){
 }
 
 /* ═══════════════════════ 鎖定狀態 ═══════════════════════ */
+/**
+ * 依 state.locked 同步整頁的可編輯狀態。
+ * 兩個方向都要處理：主辦單位若在後台解除了最終確認，重新整理後必須恢復可編輯，
+ * 否則本機快取會讓評審一直停在「已完成」畫面（先前版本的問題）。
+ */
 function applyLock(){
-  if (!state.locked) return;
+  var lock = !!state.locked;
   DIMS.forEach(function(d){
-    $('#in-'+d.key).disabled = true;
-    $('#rg-'+d.key).disabled = true;
+    $('#in-'+d.key).disabled = lock;
+    $('#rg-'+d.key).disabled = lock;
   });
-  document.querySelectorAll('.stepper').forEach(function(b){ b.disabled = true; });
-  $('#comment').disabled = true;
-  $('#btnSave').disabled = true;
-  $('#btnFinal').disabled = true;
-  toast('您已完成最終確認，評分已封存，無法再修改。', 'info');
+  document.querySelectorAll('.stepper').forEach(function(b){ b.disabled = lock; });
+  $('#comment').disabled = lock;
+  $('#btnSave').disabled = lock;
+  $('#btnFinal').disabled = lock || state.projects.length === 0;
+
+  if (lock){
+    showDone();
+    toast('您已完成最終確認，評分已封存，無法再修改。', 'info');
+  } else {
+    $('#doneScreen').classList.remove('open');
+  }
 }
 
 /* ═══════════════════════ 啟動 ═══════════════════════ */
@@ -1228,12 +1353,26 @@ function applyBoot(b, fromCache){
   paintRail(); paintList();
 
   state.ready = true;
-  if (state.locked){ applyLock(); showDone(); }
+  applyLock();
   if (!fromCache) cacheBoot();
+}
+
+function applyBanner(){
+  if (!BANNER_URL) return;
+  var img = new Image();
+  img.onload = function(){
+    var el = $('#heroImg');
+    el.style.backgroundImage = 'url("' + BANNER_URL.replace(/"/g, '%22') + '")';
+    el.hidden = false;
+    $('#hero').classList.add('has-img');
+  };
+  img.onerror = function(){ /* 圖片載不到就維持內建主視覺 */ };
+  img.src = BANNER_URL;
 }
 
 function boot(){
   buildDims();
+  applyBanner();
 
   if (!JUDGE){
     $('#judgeName').textContent = '未指定評審';
@@ -1280,6 +1419,10 @@ $('#comment').addEventListener('input', function(){
   if (d){ d.comment = $('#comment').value; saveDraft(state.current); paintRail(); }
 });
 $('#btnSave').addEventListener('click', doSave);
+$('#btnList').addEventListener('click', openListModal);
+$('#listClose').addEventListener('click', closeListModal);
+$('#listClose2').addEventListener('click', closeListModal);
+$('#listModal').addEventListener('click', function(e){ if (e.target === this) closeListModal(); });
 $('#btnFinal').addEventListener('click', openFinal);
 $('#btnPrev').addEventListener('click', function(){ step(-1); });
 $('#btnNext').addEventListener('click', function(){ step(1); });
@@ -1291,7 +1434,9 @@ $('#finalCheck').addEventListener('change', function(){
 $('#finalSubmit').addEventListener('click', doConfirm);
 $('#finalModal').addEventListener('click', function(e){ if (e.target === this) closeFinal(); });
 document.addEventListener('keydown', function(e){
-  if (e.key === 'Escape' && $('#finalModal').classList.contains('open')) closeFinal();
+  if (e.key !== 'Escape') return;
+  if ($('#finalModal').classList.contains('open')) closeFinal();
+  else if ($('#listModal').classList.contains('open')) closeListModal();
 });
 
 /* 防呆：仍有未送出的變更就離開頁面時提醒 */

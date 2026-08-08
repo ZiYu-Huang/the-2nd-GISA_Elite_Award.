@@ -111,6 +111,8 @@ button{cursor:pointer;border:none;background:none}
     <a class="btn btn-p" id="adminLink" href="admin.html" style="text-decoration:none">前往後台監控</a>
   </div>
 
+  <div class="hint" id="syncMsg" style="margin:-12px 0 16px;font-size:12.5px"></div>
+
   <div class="cards" id="cards"></div>
 
   <div class="note">
@@ -125,7 +127,11 @@ button{cursor:pointer;border:none;background:none}
 
 <script src="assets/qr.js"></script>
 <script>
-/* 評審名單：需與 Google 試算表「評審名單」工作表一致 */
+/* 與 index.html / admin.html 相同的後端網址 */
+var API_URL = 'https://script.google.com/macros/s/AKfycbwc5y9LCuvER_FJZFvXh3irojGWSZuIkcy-BUbsjpZXksu9FjXyU3iURrv0rRehN3Hlqg/exec';
+
+/* 備援名單：連不上後端時才使用。
+   平常請直接在 Google 試算表的「評審名單」新增／修改，本頁會自動抓最新的。 */
 var JUDGES = [
   { org:'證券櫃檯買賣中心',                      name:'簡立忠董事長' },
   { org:'國家發展基金',                          name:'汪庭安執行秘書' },
@@ -230,8 +236,68 @@ function downloadPng(i, name){
 $('#base').addEventListener('input', render);
 $('#btnPrint').addEventListener('click', function(){ window.print(); });
 
+/* ── 向後端要最新的評審名單 ────────────────────────────────
+   在試算表「評審名單」新增一位委員後，這頁會自動出現他的連結與 QR，
+   不需要改任何程式。名單等同於登入帳號，所以要帶後台金鑰。 */
+var seq = 0;
+function jsonp(params){
+  return new Promise(function(resolve, reject){
+    if (!API_URL || API_URL.indexOf('PUT_YOUR') === 0){ reject(new Error('未設定 API_URL')); return; }
+    var cb = 'lcb' + (++seq) + '_' + Date.now().toString(36);
+    var s = document.createElement('script');
+    var t = setTimeout(function(){ done(new Error('連線逾時')); }, 15000);
+    window[cb] = function(d){ (d && d.ok === false) ? done(new Error(d.error || '錯誤')) : done(null, d); };
+    function done(err, d){
+      clearTimeout(t);
+      try { delete window[cb]; } catch(e){ window[cb] = undefined; }
+      if (s.parentNode) s.parentNode.removeChild(s);
+      err ? reject(err) : resolve(d);
+    }
+    var qs = new URLSearchParams(params);
+    qs.set('callback', cb); qs.set('_', String(Date.now()));
+    s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + qs.toString();
+    s.onerror = function(){ done(new Error('無法連線')); };
+    document.head.appendChild(s);
+  });
+}
+
+function setStatus(text, kind){
+  var el = $('#syncMsg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = kind === 'err' ? '#b00' : (kind === 'ok' ? '#125e12' : 'var(--ink-3)');
+}
+
+function syncJudges(){
+  var key = new URLSearchParams(location.search).get('key') ||
+            localStorage.getItem('gisa2.adminkey') || '';
+  if (!key){
+    setStatus('目前顯示的是程式內建名單。要自動同步試算表的最新名單，請在網址後面加上 ?key=後台金鑰。');
+    return;
+  }
+  localStorage.setItem('gisa2.adminkey', key);
+  setStatus('同步中…');
+  jsonp({ action:'judges', key:key })
+    .then(function(res){
+      if (res.judges && res.judges.length){
+        JUDGES = res.judges.map(function(j){
+          return { org:j.org, name:j.name, test: /測試/.test(j.name) };
+        });
+      }
+      if (res.baseUrl && !new URLSearchParams(location.search).get('base')){
+        $('#base').value = res.baseUrl;
+      }
+      render();
+      setStatus('已同步試算表名單，共 ' + JUDGES.length + ' 位評審。', 'ok');
+    })
+    .catch(function(err){
+      setStatus('無法同步（' + (err.message || '') + '），改用程式內建名單。', 'err');
+    });
+}
+
 $('#base').value = defaultBase();
 render();
+syncJudges();
 </script>
 </body>
 </html>

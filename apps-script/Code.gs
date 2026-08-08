@@ -260,6 +260,15 @@ function promptBaseUrl() {
 
 /** 設定 GitHub Pages 網址後重建評審連結（也可直接在編輯器呼叫）。 */
 function setBaseUrl(url) {
+  // Apps Script 編輯器的「執行」按鈕無法傳參數，直接跑這個函式會拿到 undefined，
+  // 舊版會丟出看不懂的「Invalid argument: value」。這裡改成明確的指引。
+  if (typeof url !== 'string' || !url.trim()) {
+    throw new Error(
+      '不能在編輯器直接「執行」這個函式（按鈕沒辦法傳網址進來）。\n' +
+      '請改用試算表上方的選單：GISA 評分系統 → 設定 GitHub Pages 網址。');
+  }
+  url = url.trim();
+  if (url.slice(-1) !== '/') url += '/';
   PROPS.setProperty('BASE_URL', url);
   buildJudgeLinks();
   clearCaches();
@@ -408,6 +417,7 @@ function route(p) {
     case 'save':      return apiSave(p);
     case 'confirm':   return apiConfirm(p);
     case 'admin':     return apiAdmin(p);
+    case 'judges':    return apiJudges(p);
     default:          throw new Error('未知的 action：' + action);
   }
 }
@@ -740,6 +750,22 @@ function apiConfirm(p) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ═══════════════════════ API：judges ═══════════════════════ */
+
+/**
+ * 給 links.html 用：回傳目前的評審名單與已設定的網站網址，
+ * 這樣在試算表新增評審後，連結頁不用改程式就會自動出現新的人。
+ * 需要後台金鑰 —— 評審名單等同於「登入帳號」，不能公開。
+ */
+function apiJudges(p) {
+  requireAdmin(p.key);
+  return {
+    ok: true,
+    judges: getLists().judges,
+    baseUrl: PROPS.getProperty('BASE_URL') || ''
+  };
 }
 
 /* ═══════════════════════ API：admin ═══════════════════════ */

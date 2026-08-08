@@ -661,43 +661,76 @@ function paintCmts(M){
 }
 
 /* ── 匯出 CSV ── */
+/**
+ * 匯出 CSV。排版就是主辦單位會直接拿去用的兩張表：
+ *   表一 成績總表 —— 一家公司一列：名次、公司、各評審給的總分、平均。這是最常看的。
+ *   表二 評分明細 —— 一位評審對一家公司一列，含五構面分數與評語。
+ * 不放標準差之類的統計值；那些是後台畫面上用來看評審寬嚴的參考，
+ * 放進要給人看的表格只會造成困惑。
+ */
 function exportCsv(M){
   var teamOf = {};
   D.projects.forEach(function(p){ teamOf[p.id] = p.team; });
 
+  // 評審 → 公司 → 該筆紀錄
+  var by = {};
+  M.judges.forEach(function(j){ by[j.name] = j.done; });
+
   var lines = [];
-  lines.push(['【明細】評審','簡報順序','決選公司']
-    .concat(D.dims.map(function(d){ return d.name + '(上限' + d.max + ')'; }))
-    .concat(['總分','評語']));
-  D.records.slice().sort(function(a,b){
-    return a.judge.localeCompare(b.judge,'zh-Hant') || (Number(a.pid)-Number(b.pid));
-  }).forEach(function(r){
-    lines.push([r.judge, r.pid, teamOf[r.pid]||'']
-      .concat(r.s.map(function(v){ return v==null?'':v; }))
-      .concat([r.total, r.comment||'']));
+  lines.push(['第二屆 GISA 創櫃菁英選拔　決選成績']);
+  lines.push(['匯出時間', new Date().toLocaleString('zh-TW')]);
+  lines.push([]);
+
+  /* ── 表一：成績總表 ── */
+  lines.push(['一、成績總表（依平均分數排名）']);
+  lines.push(['名次', '簡報順序', '決選公司']
+    .concat(D.judges.map(function(j){ return j.name; }))
+    .concat(['平均分數', '已評人數']));
+
+  var ordered = M.scored.concat(M.rows.filter(function(r){ return r.n === 0; }));
+  ordered.forEach(function(r){
+    var cells = D.judges.map(function(j){
+      var rec = by[j.name] && by[j.name][r.id];
+      return rec ? f2(rec.total) : '';
+    });
+    lines.push([r.n ? r.rank : '', r.id, r.team]
+      .concat(cells)
+      .concat([r.n ? f2(r.avg) : '', r.n + ' / ' + D.judges.length]));
   });
 
   lines.push([]);
-  lines.push(['【排名】名次','簡報順序','決選公司','平均總分']
-    .concat(D.dims.map(function(d){ return d.name + '平均'; }))
-    .concat(['最高','最低','標準差','已評人數']));
-  M.scored.forEach(function(r){
-    lines.push([r.rank, r.id, r.team, f2(r.avg)]
-      .concat(r.dimAvg.map(function(v){ return f2(v); }))
-      .concat([f2(r.max), f2(r.min), f2(r.sd), r.n]));
+  lines.push([]);
+
+  /* ── 表二：評分明細 ── */
+  lines.push(['二、評分明細（含各構面分數與委員意見）']);
+  lines.push(['評審', '簡報順序', '決選公司']
+    .concat(D.dims.map(function(d){ return d.name + '（上限' + d.max + '）'; }))
+    .concat(['總分', '委員意見']));
+
+  D.judges.forEach(function(j){
+    D.projects.forEach(function(p){
+      var rec = by[j.name] && by[j.name][p.id];
+      if (!rec) return;
+      lines.push([j.name, p.id, p.team]
+        .concat(rec.s.map(function(v){ return v == null ? '' : f2(v); }))
+        .concat([f2(rec.total), rec.comment || '']));
+    });
   });
 
   var csv = lines.map(function(row){
     return row.map(function(c){
-      var s = String(c==null?'':c);
-      return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+      var s = String(c == null ? '' : c);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     }).join(',');
   }).join('\r\n');
+
+  var d = new Date(), p2 = function(n){ return n < 10 ? '0' + n : '' + n; };
+  var stamp = d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes());
 
   var blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'GISA菁英選拔_評分結果_' + new Date().toISOString().slice(0,16).replace(/[:T]/g,'') + '.csv';
+  a.download = 'GISA創櫃菁英選拔_決選成績_' + stamp + '.csv';
   a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
 }
