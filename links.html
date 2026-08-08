@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2b57'/%3E%3Cpath d='M20 44V20h24' stroke='%23c8a34a' stroke-width='6' fill='none'/%3E%3Cpath d='M20 44h24V32H32' stroke='%23e3c887' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<title>評審專屬連結 — 第二屆 GISA 創櫃菁英選拔</title>
+<style>
+:root{
+  --navy-900:#08213f; --navy-800:#0b2b57; --navy-700:#123f7d; --navy-600:#1a559f;
+  --gold-500:#c8a34a; --gold-300:#e3c887;
+  --page:#eef1f6; --surface:#fff; --surface-2:#f7f9fc;
+  --ink:#0f172a; --ink-2:#475569; --ink-3:#7c8798;
+  --line:#e3e8f0; --line-strong:#cbd5e1; --ok:#0ca30c;
+  --font:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--page);color:var(--ink)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:3px solid var(--navy-600);outline-offset:2px;border-radius:4px}
+
+.hero{
+  background:linear-gradient(135deg,var(--navy-900),var(--navy-800) 55%,var(--navy-700));
+  color:#fff;padding:24px 22px;position:relative;
+}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold-500),var(--gold-300),var(--gold-500),transparent)}
+.hero-in{max-width:1180px;margin:0 auto;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.mk{width:52px;height:52px;border-radius:13px;background:linear-gradient(150deg,var(--gold-300),var(--gold-500));
+  color:var(--navy-900);display:grid;place-items:center;font-weight:800;font-size:12px;line-height:1.1;text-align:center}
+.hero h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.4px}
+.hero .s{font-size:13px;color:#bdd0e8;margin-top:4px}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px}
+.bar{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:16px 18px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;
+}
+.bar .f{flex:1 1 380px;min-width:0}
+.bar label{display:block;font-size:11.5px;letter-spacing:1.2px;font-weight:800;color:var(--ink-3);margin-bottom:6px}
+.bar input{width:100%;padding:11px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-size:14px}
+.bar input:focus{border-color:var(--navy-600);outline:none;box-shadow:0 0 0 3px rgba(26,85,159,.14)}
+.bar .hint{font-size:12px;color:var(--ink-3);margin-top:7px;line-height:1.6}
+.btn{padding:11px 18px;border-radius:10px;font-weight:800;font-size:14px}
+.btn-p{background:var(--navy-800);color:#fff}
+.btn-g{background:var(--surface);border:1.5px solid var(--line-strong);color:var(--ink-2)}
+.btn-g:hover{border-color:var(--navy-600);color:var(--navy-700)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.jc{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(15,23,42,.06),0 2px 8px rgba(15,23,42,.05);display:flex;flex-direction:column}
+.jc.test{border-style:dashed;border-color:var(--line-strong);background:var(--surface-2)}
+.jc-h{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.jc-h .n{font-size:16.5px;font-weight:800;letter-spacing:.3px}
+.jc-h .o{font-size:12px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+.jc-b{padding:16px;display:flex;gap:15px;align-items:flex-start;flex:1 1 auto}
+.qr{width:132px;height:132px;flex:0 0 auto;border:1px solid var(--line);border-radius:10px;padding:5px;background:#fff}
+.qr svg{width:100%;height:100%;display:block}
+.jc-r{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:9px}
+.url{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.55;
+  color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;word-break:break-all;max-height:82px;overflow:auto;
+}
+.acts{display:flex;gap:7px;flex-wrap:wrap}
+.acts button,.acts a{
+  padding:7px 12px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--surface);
+  font-size:12.5px;font-weight:700;color:var(--navy-700);text-decoration:none;display:inline-block;
+}
+.acts button:hover,.acts a:hover{background:#eef4fd;border-color:var(--navy-600)}
+.acts button.done{background:#eaf7ea;border-color:#b7e3b7;color:#125e12}
+
+.note{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;
+  font-size:13.5px;line-height:1.85;color:var(--ink-2)}
+.note h2{margin:0 0 10px;font-size:15px;color:var(--ink)}
+.note code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12.5px}
+
+@media print{
+  body{background:#fff}
+  .hero,.bar,.note{display:none}
+  .wrap{padding:0;max-width:none}
+  .cards{grid-template-columns:1fr 1fr;gap:10px}
+  .jc{break-inside:avoid;box-shadow:none;border-color:#999}
+  .acts{display:none}
+  .jc.test{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="mk">GISA<br>菁英</div>
+    <div>
+      <h1>評審委員專屬連結</h1>
+      <div class="s">第二屆 GISA 創櫃菁英選拔　決選評分系統</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="bar">
+    <div class="f">
+      <label for="base">評分系統網址（GitHub Pages）</label>
+      <input id="base" type="text" spellcheck="false">
+      <div class="hint">預設自動帶入本頁所在位置。若改用自訂網域，改這裡即可，下方連結與 QR Code 會即時更新。</div>
+    </div>
+    <button class="btn btn-g" id="btnPrint" type="button">列印 / 存成 PDF</button>
+    <a class="btn btn-p" id="adminLink" href="admin.html" style="text-decoration:none">前往後台監控</a>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="note">
+    <h2>使用說明</h2>
+    ・ 每位評審請使用<b>自己的專屬連結</b>，系統以網址中的 <code>?judge=</code> 辨識身分，不需帳號密碼。<br>
+    ・ 連結可直接以 LINE／Email 傳送，或請評審用手機掃描 QR Code。<br>
+    ・ 評審名單以 Google 試算表的「評審名單」工作表為準；不在名單上的名字會被系統拒絕，避免誤用。<br>
+    ・ 「測試評審」僅供活動前試打，正式活動前可在試算表中刪除該列，並執行 <code>resetAllScores()</code> 清除彩排資料。<br>
+    ・ 按「列印 / 存成 PDF」可產生一頁式的連結卡，方便現場張貼或發送。
+  </div>
+</div>
+
+<script src="assets/qr.js"></script>
+<script>
+/* 評審名單：需與 Google 試算表「評審名單」工作表一致 */
+var JUDGES = [
+  { org:'證券櫃檯買賣中心',                      name:'簡立忠董事長' },
+  { org:'國家發展基金',                          name:'汪庭安執行秘書' },
+  { org:'經濟部中小及新創企業署',                name:'李冠志署長' },
+  { org:'意德士科技(股)公司',                    name:'闕聖哲董事長' },
+  { org:'中天生物科技(股)公司',                  name:'陳振文董事長' },
+  { org:'普萊德科技(股)公司',                    name:'陳清港董事長' },
+  { org:'SparkLabs Taiwan 新創加速器暨創投基金', name:'邱彥錡共同創辦人暨管理合夥人' },
+  { org:'（測試用，正式活動可移除）',            name:'測試評審', test:true }
+];
+
+var $ = function(s){ return document.querySelector(s); };
+
+function defaultBase(){
+  var u = location.href.split('#')[0].split('?')[0];
+  return u.replace(/links\.html$/, '');
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+  });
+}
+function urlFor(base, name){
+  var b = base.trim();
+  if (b && b.slice(-1) !== '/' && !/\.html$/.test(b)) b += '/';
+  return b + '?judge=' + encodeURIComponent(name);
+}
+
+function render(){
+  var base = $('#base').value;
+  $('#cards').innerHTML = JUDGES.map(function(j, i){
+    var url = urlFor(base, j.name);
+    var svg;
+    try { svg = qrSvg(url, { fg:'#08213f' }); }
+    catch(e){ svg = '<div style="font-size:11px;color:#b00;padding:8px">網址過長，無法產生 QR Code</div>'; }
+    return '<div class="jc' + (j.test ? ' test' : '') + '">' +
+      '<div class="jc-h"><div class="n">' + esc(j.name) + '</div>' +
+        '<div class="o">' + esc(j.org) + '</div></div>' +
+      '<div class="jc-b">' +
+        '<div class="qr" id="qr-' + i + '">' + svg + '</div>' +
+        '<div class="jc-r">' +
+          '<div class="url">' + esc(url) + '</div>' +
+          '<div class="acts">' +
+            '<button type="button" data-copy="' + esc(url) + '">複製連結</button>' +
+            '<a href="' + esc(url) + '" target="_blank" rel="noopener">開啟</a>' +
+            '<button type="button" data-png="' + i + '" data-name="' + esc(j.name) + '">下載 QR</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+$('#cards').addEventListener('click', function(e){
+  var c = e.target.closest('[data-copy]');
+  if (c){
+    var txt = c.dataset.copy;
+    var done = function(){
+      c.textContent = '已複製 ✓'; c.classList.add('done');
+      setTimeout(function(){ c.textContent = '複製連結'; c.classList.remove('done'); }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, fallbackCopy);
+    } else fallbackCopy();
+    function fallbackCopy(){
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(err){}
+      document.body.removeChild(ta);
+    }
+    return;
+  }
+  var p = e.target.closest('[data-png]');
+  if (p) downloadPng(Number(p.dataset.png), p.dataset.name);
+});
+
+function downloadPng(i, name){
+  var svg = document.querySelector('#qr-' + i + ' svg');
+  if (!svg) return;
+  var size = 640;
+  var blob = new Blob([new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var img = new Image();
+  img.onload = function(){
+    var cv = document.createElement('canvas');
+    cv.width = cv.height = size;
+    var ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(img, 0, 0, size, size);
+    URL.revokeObjectURL(url);
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = 'GISA評分連結_' + name + '.png';
+    a.click();
+  };
+  img.onerror = function(){ URL.revokeObjectURL(url); };
+  img.src = url;
+}
+
+$('#base').addEventListener('input', render);
+$('#btnPrint').addEventListener('click', function(){ window.print(); });
+
+$('#base').value = defaultBase();
+render();
+</script>
+</body>
+</html>

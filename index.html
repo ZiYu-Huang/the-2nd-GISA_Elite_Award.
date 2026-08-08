@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2b57'/%3E%3Cpath d='M20 44V20h24' stroke='%23c8a34a' stroke-width='6' fill='none'/%3E%3Cpath d='M20 44h24V32H32' stroke='%23e3c887' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<title>第二屆 GISA 創櫃菁英選拔 — 評分系統</title>
+<style>
+/* ═══════════════ 設計標記 ═══════════════ */
+:root{
+  --navy-900:#08213f; --navy-800:#0b2b57; --navy-700:#123f7d; --navy-600:#1a559f;
+  --gold-500:#c8a34a; --gold-300:#e3c887;
+
+  --page:#eef1f6;
+  --surface:#ffffff;
+  --surface-2:#f7f9fc;
+  --ink:#0f172a;
+  --ink-2:#475569;
+  --ink-3:#7c8798;
+  --line:#e3e8f0;
+  --line-strong:#cbd5e1;
+
+  --ok:#0ca30c; --warn:#fab219; --danger:#d03b3b;
+
+  /* 五構面（依 CVD 驗證過的固定色序，不可交換） */
+  --dim-I:#2a78d6; --dim-M:#eb6834; --dim-T:#1baf7a; --dim-E:#eda100; --dim-F:#e87ba4;
+
+  --r-sm:8px; --r-md:12px; --r-lg:18px;
+  --shadow-1:0 1px 2px rgba(15,23,42,.06), 0 2px 8px rgba(15,23,42,.05);
+  --shadow-2:0 8px 24px rgba(15,23,42,.10);
+  --shadow-3:0 24px 60px rgba(8,33,63,.28);
+  --font:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font);
+  background:var(--page);
+  color:var(--ink);
+  -webkit-text-size-adjust:100%;
+  padding-bottom:104px;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:3px solid var(--navy-600);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ═══════════════ 頁首 ═══════════════ */
+.hero{
+  position:relative;
+  background:
+    radial-gradient(1200px 400px at 15% -10%, rgba(200,163,74,.22), transparent 60%),
+    radial-gradient(900px 380px at 90% 0%, rgba(26,85,159,.55), transparent 55%),
+    linear-gradient(135deg,var(--navy-900) 0%, var(--navy-800) 45%, var(--navy-700) 100%);
+  color:#fff;
+  padding:22px 20px 26px;
+  overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold-500),var(--gold-300),var(--gold-500),transparent);
+}
+.hero-inner{max-width:1120px;margin:0 auto;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.hero-mark{
+  flex:0 0 auto;width:58px;height:58px;border-radius:14px;
+  background:linear-gradient(150deg,var(--gold-300),var(--gold-500));
+  color:var(--navy-900);display:grid;place-items:center;
+  font-weight:800;font-size:13px;line-height:1.1;text-align:center;letter-spacing:.5px;
+  box-shadow:0 6px 18px rgba(0,0,0,.28);
+}
+.hero-txt{flex:1 1 260px;min-width:0}
+.hero-kicker{font-size:12.5px;letter-spacing:2.5px;color:var(--gold-300);font-weight:700;margin-bottom:5px}
+.hero-title{margin:0;font-size:clamp(19px,3.4vw,26px);font-weight:800;letter-spacing:.4px;line-height:1.25}
+.hero-sub{margin-top:7px;font-size:13.5px;color:#c3d3e8}
+.hero-side{flex:0 0 auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+.judge-chip{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  padding:9px 15px;border-radius:999px;backdrop-filter:blur(6px);
+}
+.judge-chip .who{font-weight:700;font-size:15px}
+.judge-chip .org{font-size:11.5px;color:#c3d3e8;margin-top:1px}
+
+.ring{position:relative;width:62px;height:62px;flex:0 0 auto}
+.ring svg{transform:rotate(-90deg);display:block}
+.ring .track{stroke:rgba(255,255,255,.2)}
+.ring .bar{stroke:var(--gold-300);stroke-linecap:round;transition:stroke-dasharray .45s cubic-bezier(.4,0,.2,1)}
+.ring .lbl{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.ring .lbl small{font-weight:600;font-size:9.5px;color:#c3d3e8;display:block;text-align:center}
+
+/* ═══════════════ 版面 ═══════════════ */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-1)}
+.card + .card{margin-top:18px}
+.card-head{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:15px 20px;border-bottom:1px solid var(--line);
+}
+.card-head h2{margin:0;font-size:15.5px;font-weight:800;letter-spacing:.3px}
+.card-head .note{font-size:12.5px;color:var(--ink-3);margin-left:auto}
+
+/* ── 公司選擇軌 ── */
+.rail{margin-top:-16px;position:relative;z-index:2}
+.rail-scroll{
+  display:flex;gap:9px;overflow-x:auto;padding:14px 20px;
+  scrollbar-width:thin;scroll-snap-type:x proximity;
+}
+.rail-scroll::-webkit-scrollbar{height:6px}
+.rail-scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:99px}
+.co{
+  flex:0 0 auto;scroll-snap-align:center;
+  display:flex;align-items:center;gap:9px;
+  padding:9px 14px 9px 10px;border-radius:999px;
+  background:var(--surface-2);border:1.5px solid var(--line);
+  transition:background .15s,border-color .15s,box-shadow .15s;
+  max-width:270px;
+}
+.co:hover{background:#eef3fb;border-color:#b9cbe6}
+.co .n{
+  flex:0 0 auto;width:25px;height:25px;border-radius:50%;
+  display:grid;place-items:center;font-size:12.5px;font-weight:800;
+  background:var(--navy-700);color:#fff;font-variant-numeric:tabular-nums;
+}
+.co .nm{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co .st{flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:var(--line-strong)}
+.co[data-state="saved"] .st{background:var(--ok)}
+.co[data-state="draft"] .st{background:var(--warn)}
+.co[aria-current="true"]{
+  background:linear-gradient(135deg,var(--navy-800),var(--navy-700));border-color:var(--navy-800);
+  box-shadow:0 6px 18px rgba(11,43,87,.32);
+}
+.co[aria-current="true"] .nm{color:#fff}
+.co[aria-current="true"] .n{background:var(--gold-500);color:var(--navy-900)}
+
+/* ── 目前公司標頭 ── */
+.now{padding:20px 20px 4px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.now-ord{
+  flex:0 0 auto;width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(150deg,var(--navy-700),var(--navy-800));color:#fff;
+  display:grid;place-items:center;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;
+  box-shadow:var(--shadow-1);
+}
+.now-txt{flex:1 1 240px;min-width:0}
+.now-lbl{font-size:11.5px;letter-spacing:2px;color:var(--ink-3);font-weight:700}
+.now-name{font-size:clamp(18px,2.8vw,23px);font-weight:800;margin-top:3px;line-height:1.3;word-break:break-all}
+.now-meta{margin-top:7px;font-size:12.5px;color:var(--ink-3)}
+.nav-btns{display:flex;gap:8px;flex:0 0 auto}
+.nav-btns button{
+  padding:9px 14px;border-radius:10px;border:1.5px solid var(--line-strong);
+  background:var(--surface);font-size:13.5px;font-weight:700;color:var(--ink-2);
+}
+.nav-btns button:hover:not(:disabled){background:var(--surface-2);border-color:var(--navy-600);color:var(--navy-700)}
+.nav-btns button:disabled{opacity:.38;cursor:not-allowed}
+
+/* ── 構面卡 ── */
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;padding:16px 20px 4px}
+.dim{
+  border:1px solid var(--line);border-radius:var(--r-md);
+  border-left:5px solid var(--c);background:var(--surface);
+  padding:14px 16px 15px;
+}
+.dim.bad{border-color:var(--danger);box-shadow:0 0 0 3px rgba(208,59,59,.10)}
+.dim-head{display:flex;align-items:baseline;gap:9px;margin-bottom:11px}
+.dim-idx{
+  font-size:11px;font-weight:800;color:#fff;background:var(--c);
+  border-radius:5px;padding:2px 6px;letter-spacing:.5px;flex:0 0 auto;
+}
+.dim-name{font-size:15.5px;font-weight:800;letter-spacing:.2px}
+.dim-max{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--ink-3);white-space:nowrap}
+.dim-row{display:flex;align-items:center;gap:8px}
+.stepper{
+  flex:0 0 auto;width:38px;height:44px;border-radius:10px;
+  border:1.5px solid var(--line-strong);background:var(--surface-2);
+  font-size:19px;font-weight:700;color:var(--ink-2);line-height:1;
+}
+.stepper:hover:not(:disabled){background:#e8eef8;color:var(--navy-700);border-color:var(--navy-600)}
+.stepper:disabled{opacity:.35;cursor:not-allowed}
+.dim input[type=number]{
+  flex:1 1 auto;width:100%;min-width:0;height:44px;
+  border:1.5px solid var(--line-strong);border-radius:10px;
+  padding:0 12px;font-size:22px;font-weight:800;text-align:center;
+  font-variant-numeric:tabular-nums;background:var(--surface);
+  -moz-appearance:textfield;
+}
+.dim input[type=number]::-webkit-outer-spin-button,
+.dim input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.dim input[type=number]:focus{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent);outline:none}
+.dim.bad input[type=number]{border-color:var(--danger)}
+.dim input[type=range]{
+  width:100%;margin:13px 0 0;height:20px;-webkit-appearance:none;background:transparent;
+}
+.dim input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:var(--line)}
+.dim input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--line)}
+.dim input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:var(--c);border:3px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);margin-top:-7px;
+}
+.dim input[type=range]::-moz-range-thumb{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--c);border:3px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);
+}
+.dim-foot{display:flex;align-items:center;gap:8px;margin-top:8px;min-height:17px}
+.dim-scale{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.dim-err{font-size:12px;font-weight:700;color:var(--danger);margin-left:auto;text-align:right}
+
+/* ── 評語 ── */
+.cmt{padding:6px 20px 20px}
+.cmt-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.cmt-head label{font-size:14.5px;font-weight:800}
+.cmt-head .opt{font-size:12px;color:var(--ink-3)}
+.cmt-head .cnt{margin-left:auto;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cmt-head .cnt.near{color:var(--warn);font-weight:700}
+.cmt textarea{
+  width:100%;min-height:96px;resize:vertical;
+  border:1.5px solid var(--line-strong);border-radius:var(--r-md);
+  padding:12px 14px;font-size:15px;line-height:1.65;background:var(--surface);
+}
+.cmt textarea:focus{border-color:var(--navy-600);box-shadow:0 0 0 3px rgba(26,85,159,.14);outline:none}
+
+/* ── 總覽表 ── */
+.tbl-wrap{overflow-x:auto}
+table.grid{width:100%;border-collapse:collapse;font-size:14px}
+table.grid th,table.grid td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+table.grid th{
+  font-size:11.5px;letter-spacing:1px;color:var(--ink-3);font-weight:800;
+  background:var(--surface-2);position:sticky;top:0;
+}
+table.grid td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+table.grid td.co-name{white-space:normal;min-width:190px;font-weight:600}
+table.grid tbody tr:hover{background:#f6f9fe}
+table.grid tbody tr.is-current{background:#eef4fd}
+table.grid tr:last-child td{border-bottom:none}
+.rk{
+  display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;
+  border-radius:7px;background:var(--surface-2);border:1px solid var(--line);
+  font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.rk.top1{background:linear-gradient(150deg,var(--gold-300),var(--gold-500));border-color:var(--gold-500);color:var(--navy-900)}
+.rk.tie{border-color:var(--warn);background:#fff7e6;color:#8a5a00}
+.mini{
+  display:inline-flex;gap:3px;align-items:flex-end;height:20px;vertical-align:middle;
+}
+.mini i{width:7px;border-radius:2px 2px 0 0;background:var(--c);display:block;min-height:2px}
+.link-btn{
+  padding:6px 12px;border-radius:8px;border:1.5px solid var(--line-strong);
+  background:var(--surface);font-size:12.5px;font-weight:700;color:var(--navy-700);
+}
+.link-btn:hover{background:#eef4fd;border-color:var(--navy-600)}
+.empty{padding:28px 20px;text-align:center;color:var(--ink-3);font-size:14px}
+
+/* ── 底部固定列 ── */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(15,23,42,.10);
+  padding:11px 20px calc(11px + env(safe-area-inset-bottom));
+}
+.dock-inner{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.total{display:flex;align-items:baseline;gap:10px;flex:0 0 auto}
+.total .cap{font-size:11.5px;letter-spacing:1.5px;color:var(--ink-3);font-weight:700}
+.total .val{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:var(--navy-800)}
+.total .max{font-size:14px;color:var(--ink-3);font-weight:700}
+.tbar{flex:1 1 160px;min-width:120px;height:8px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
+.tbar i{display:block;height:100%;background:var(--c);transition:width .25s ease}
+.tbar i + i{margin-left:2px}
+.dock-msg{font-size:13px;font-weight:700;flex:1 1 100%;order:9;min-height:0}
+.dock-msg.ok{color:var(--ok)}
+.dock-msg.err{color:var(--danger)}
+.dock-msg.info{color:var(--ink-3);font-weight:600}
+.btn{
+  padding:13px 24px;border-radius:12px;font-size:15.5px;font-weight:800;letter-spacing:.5px;
+  display:inline-flex;align-items:center;gap:9px;transition:transform .08s,box-shadow .15s,background .15s;
+}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,var(--navy-700),var(--navy-800));color:#fff;box-shadow:0 6px 18px rgba(11,43,87,.30)}
+.btn-primary:hover:not(:disabled){box-shadow:0 8px 24px rgba(11,43,87,.42)}
+.btn-gold{background:linear-gradient(135deg,var(--gold-500),#b08c34);color:var(--navy-900);box-shadow:0 6px 18px rgba(200,163,74,.35)}
+.btn-gold:hover:not(:disabled){box-shadow:0 8px 26px rgba(200,163,74,.5)}
+.btn-ghost{background:var(--surface);border:1.5px solid var(--line-strong);color:var(--ink-2)}
+.btn-ghost:hover:not(:disabled){background:var(--surface-2);border-color:var(--navy-600);color:var(--navy-700)}
+.spin{
+  width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;
+}
+.btn-ghost .spin,.btn-gold .spin{border-color:rgba(15,23,42,.25);border-top-color:var(--navy-800)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── 對話框 ── */
+.modal{
+  position:fixed;inset:0;z-index:200;display:none;
+  align-items:center;justify-content:center;padding:20px;
+  background:rgba(8,33,63,.55);backdrop-filter:blur(4px);
+}
+.modal.open{display:flex}
+.modal-box{
+  width:min(880px,100%);max-height:88vh;display:flex;flex-direction:column;
+  background:var(--surface);border-radius:20px;box-shadow:var(--shadow-3);overflow:hidden;
+}
+.modal-head{
+  padding:18px 22px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,var(--navy-800),var(--navy-700));color:#fff;
+}
+.modal-head h2{margin:0;font-size:17px;font-weight:800}
+.modal-head .x{margin-left:auto;color:#fff;font-size:22px;line-height:1;padding:4px 9px;border-radius:8px;opacity:.85}
+.modal-head .x:hover{background:rgba(255,255,255,.16);opacity:1}
+.modal-body{padding:20px 22px;overflow:auto;flex:1 1 auto}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--line);background:var(--surface-2)}
+
+.status-strip{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:12px 15px;border-radius:var(--r-md);margin-bottom:16px;font-size:14px;font-weight:600;
+}
+.status-strip.good{background:#eaf7ea;border:1px solid #b7e3b7;color:#125e12}
+.status-strip.bad{background:#fdecec;border:1px solid #f3bfbf;color:#8f2020}
+.status-strip .big{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+.declare{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:15px;border-radius:var(--r-md);
+  background:#fffaf0;border:1.5px solid var(--gold-500);margin-bottom:14px;
+}
+.declare input{width:22px;height:22px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--navy-700);cursor:pointer}
+.declare label{font-size:14.5px;line-height:1.65;cursor:pointer}
+.declare b{color:var(--navy-800)}
+.declare .warn-txt{color:var(--danger);font-weight:800}
+.tie-note{
+  font-size:12.5px;color:#8a5a00;background:#fff7e6;border:1px solid #f0d79a;
+  padding:9px 13px;border-radius:9px;margin-bottom:12px;
+}
+.modal-msg{font-size:13.5px;font-weight:700;margin-top:10px;min-height:18px}
+
+/* ── 已完成畫面 ── */
+.done{
+  position:fixed;inset:0;z-index:300;display:none;
+  place-items:center;padding:24px;
+  background:
+    radial-gradient(900px 400px at 50% 0%, rgba(26,85,159,.55), transparent 60%),
+    linear-gradient(160deg,var(--navy-900),var(--navy-800));
+  color:#fff;text-align:center;
+}
+.done.open{display:grid}
+.done-in{max-width:520px}
+.done-mark{
+  width:88px;height:88px;margin:0 auto 22px;border-radius:50%;
+  background:linear-gradient(150deg,var(--gold-300),var(--gold-500));
+  display:grid;place-items:center;font-size:44px;color:var(--navy-900);
+  box-shadow:0 14px 44px rgba(200,163,74,.45);
+}
+.done h2{margin:0 0 12px;font-size:27px;font-weight:800;letter-spacing:1px}
+.done p{margin:0 0 8px;font-size:15.5px;color:#c9d8ec;line-height:1.75}
+.done .stamp{margin-top:20px;font-size:12.5px;color:#8fa8c6;letter-spacing:.5px}
+
+/* ── 連線狀態 ── */
+.netbar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:110px;z-index:70;
+  display:none;align-items:center;gap:11px;
+  padding:10px 17px;border-radius:999px;font-size:13.5px;font-weight:700;
+  box-shadow:var(--shadow-2);max-width:calc(100vw - 32px);
+}
+.netbar.show{display:flex}
+.netbar.retry{background:#fff5e6;border:1.5px solid var(--warn);color:#7a4d00}
+.netbar.fail{background:#fdecec;border:1.5px solid var(--danger);color:#8f2020}
+.netbar button{
+  padding:5px 12px;border-radius:8px;background:var(--navy-800);color:#fff;
+  font-size:12.5px;font-weight:700;flex:0 0 auto;
+}
+
+/* ── 骨架載入 ── */
+.skel{background:linear-gradient(90deg,#eef2f7 25%,#f7fafd 50%,#eef2f7 75%);background-size:200% 100%;animation:sh 1.3s infinite;border-radius:8px;color:transparent!important}
+@keyframes sh{to{background-position:-200% 0}}
+
+.foot{max-width:1120px;margin:24px auto 8px;padding:0 20px;font-size:12px;color:var(--ink-3);line-height:1.8}
+
+@media (max-width:640px){
+  .dims{grid-template-columns:1fr;padding:14px 14px 4px}
+  .wrap{padding:0 14px}
+  .rail-scroll{padding:12px 14px}
+  .now{padding:16px 14px 4px}
+  .cmt{padding:6px 14px 16px}
+  .dock{padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+  .total .val{font-size:28px}
+  .btn{padding:12px 18px;font-size:14.5px}
+  .card-head{padding:13px 14px}
+  body{padding-bottom:132px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-mark">GISA<br>菁英</div>
+    <div class="hero-txt">
+      <div class="hero-kicker">2 0 2 6 ・ 第 二 屆</div>
+      <h1 class="hero-title">GISA 創櫃菁英選拔　決選評分</h1>
+      <div class="hero-sub" id="heroSub">五大構面滿分 100 分，可填至小數點後兩位。</div>
+    </div>
+    <div class="hero-side">
+      <div class="judge-chip">
+        <div>
+          <div class="who" id="judgeName">載入中…</div>
+          <div class="org" id="judgeOrg">　</div>
+        </div>
+      </div>
+      <div class="ring" title="評分進度">
+        <svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+          <circle class="track" cx="31" cy="31" r="26" fill="none" stroke-width="6"></circle>
+          <circle class="bar" id="ringBar" cx="31" cy="31" r="26" fill="none" stroke-width="6"
+                  stroke-dasharray="0 163.4"></circle>
+        </svg>
+        <div class="lbl"><span id="ringTxt">0/0</span><small>已評</small></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 公司選擇軌 -->
+  <div class="card rail">
+    <div class="rail-scroll" id="rail" role="tablist" aria-label="決選公司"></div>
+  </div>
+
+  <!-- 評分卡 -->
+  <section class="card" id="scoreCard" style="margin-top:18px">
+    <div class="now">
+      <div class="now-ord" id="nowOrd">–</div>
+      <div class="now-txt">
+        <div class="now-lbl">決選公司</div>
+        <div class="now-name skel" id="nowName">載入中…………</div>
+        <div class="now-meta" id="nowMeta">　</div>
+      </div>
+      <div class="nav-btns">
+        <button id="btnPrev" type="button">← 上一家</button>
+        <button id="btnNext" type="button">下一家 →</button>
+      </div>
+    </div>
+
+    <div class="dims" id="dims"></div>
+
+    <div class="cmt">
+      <div class="cmt-head">
+        <label for="comment">委員意見</label>
+        <span class="opt">（可留空）</span>
+        <span class="cnt" id="cmtCount">0 / 300</span>
+      </div>
+      <textarea id="comment" maxlength="300" rows="4"
+        placeholder="對這家公司的觀察、建議或提醒（最多 300 字，會一併記錄於後台）"></textarea>
+    </div>
+  </section>
+
+  <!-- 我的評分總覽 -->
+  <section class="card" id="listCard">
+    <div class="card-head">
+      <h2>我的評分總覽</h2>
+      <span class="note">點「檢視」即可切換並載入該公司的評分內容進行修改</span>
+    </div>
+    <div class="tbl-wrap" id="listBody"></div>
+  </section>
+
+  <div class="foot">
+    前端：GitHub Pages（純靜態，開啟即用）．後端：Google Apps Script + Google 試算表．<br>
+    所有分數在您按下「送出評分」後即時寫入試算表；「最終確認」送出後將封存不可修改。
+  </div>
+</div>
+
+<!-- 底部固定操作列 -->
+<div class="dock">
+  <div class="dock-inner">
+    <div class="total">
+      <span class="cap">總分</span>
+      <span class="val" id="liveTotal">0.00</span>
+      <span class="max">/ 100</span>
+    </div>
+    <div class="tbar" id="tbar" aria-hidden="true"></div>
+    <button class="btn btn-primary" id="btnSave" type="button">送出評分</button>
+    <button class="btn btn-gold" id="btnFinal" type="button">最終確認</button>
+    <div class="dock-msg" id="msg" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="netbar" id="netbar" role="alert"></div>
+
+<!-- 最終確認 -->
+<div class="modal" id="finalModal" role="dialog" aria-modal="true" aria-labelledby="finalTitle">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="finalTitle">最終確認 — 我的全部評分</h2>
+      <button class="x" id="finalClose" type="button" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="status-strip" id="finalStatus"></div>
+      <div class="tie-note" id="tieNote" style="display:none"></div>
+      <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:12px">
+        <table class="grid" id="finalTable">
+          <thead>
+            <tr>
+              <th>順序</th><th>決選公司</th>
+              <th style="text-align:right">總分</th>
+              <th style="text-align:center">名次</th>
+              <th>最後更新</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="finalTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="declare">
+        <input type="checkbox" id="finalCheck">
+        <label for="finalCheck">
+          本人已逐一核對上表所有公司之總分與名次，<b>確認此為最終送出之評分結果</b>。
+          <span class="warn-txt">送出後將立即封存，無法再行修改。</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="finalCancel" type="button">再檢查一下</button>
+        <button class="btn btn-gold" id="finalSubmit" type="button" disabled>確認送出</button>
+      </div>
+      <div class="modal-msg" id="finalMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 完成畫面 -->
+<div class="done" id="doneScreen">
+  <div class="done-in">
+    <div class="done-mark">✓</div>
+    <h2>評分已完成</h2>
+    <p id="doneWho">　</p>
+    <p>感謝您撥冗參與第二屆 GISA 創櫃菁英選拔決選評審。<br>您的評分已完整送出並封存。</p>
+    <div class="stamp" id="doneStamp"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   設定：部署後只需要改這一行
+   ═══════════════════════════════════════════════════════════ */
+var API_URL = 'PUT_YOUR_GAS_WEBAPP_URL_HERE';   // ← 貼上 Apps Script 網頁應用程式的 /exec 網址
+
+/* ═══════════════════════ 常數 ═══════════════════════ */
+var DIMS = [
+  { key:'I', name:'產品創新與行銷', max:30, idx:'一' },
+  { key:'M', name:'市場需求與規模', max:30, idx:'二' },
+  { key:'T', name:'技術門檻',       max:20, idx:'三' },
+  { key:'E', name:'經營團隊',       max:10, idx:'四' },
+  { key:'F', name:'財務狀況',       max:10, idx:'五' }
+];
+var MAX_TOTAL = DIMS.reduce(function(s,d){ return s + d.max; }, 0);
+var LS = 'gisa2.';
+var $  = function(s){ return document.querySelector(s); };
+
+/* ═══════════════════════ 狀態 ═══════════════════════ */
+var JUDGE = (new URLSearchParams(location.search).get('judge') || '').trim();
+var state = {
+  ready:false, locked:false, confirmedAt:0, org:'',
+  projects:[],          // [{id, team}]
+  saved:{},             // pid -> {scores, total, comment, at}
+  drafts:{},            // pid -> {scores, comment}
+  current:null,         // pid
+  saving:false,
+  pending:null          // 待重試的送出內容
+};
+
+/* ═══════════════════════ 網路（JSONP） ═══════════════════════
+   選擇 JSONP 而非 fetch 的原因：Apps Script 的 CORS 預檢
+   (OPTIONS) 會多一次來回，JSONP 沒有預檢，實測快 200–400ms。 */
+var jsonpSeq = 0;
+function jsonp(params, timeoutMs){
+  timeoutMs = timeoutMs || 20000;
+  return new Promise(function(resolve, reject){
+    if (!API_URL || API_URL.indexOf('PUT_YOUR') === 0){
+      reject(new Error('尚未設定後端網址（API_URL），請聯絡系統管理者。'));
+      return;
+    }
+    var cb = 'gcb' + (++jsonpSeq) + '_' + Date.now().toString(36);
+    var s = document.createElement('script');
+    var timer = setTimeout(function(){ finish(new Error('連線逾時，請檢查網路後再試一次。')); }, timeoutMs);
+
+    window[cb] = function(data){
+      if (data && data.ok === false) finish(new Error(data.error || '後端回報錯誤'));
+      else finish(null, data);
+    };
+    function finish(err, data){
+      clearTimeout(timer);
+      try { delete window[cb]; } catch(e){ window[cb] = undefined; }
+      if (s.parentNode) s.parentNode.removeChild(s);
+      err ? reject(err) : resolve(data);
+    }
+
+    var qs = new URLSearchParams(params);
+    qs.set('callback', cb);
+    qs.set('_', String(Date.now()));
+    s.src = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + qs.toString();
+    s.onerror = function(){ finish(new Error('無法連線至評分伺服器。')); };
+    document.head.appendChild(s);
+  });
+}
+
+/* ═══════════════════════ 本機儲存 ═══════════════════════ */
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(LS+k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(LS+k); }catch(e){} }
+function bootKey(){ return 'boot.' + JUDGE; }
+function draftKey(pid){ return 'draft.' + JUDGE + '.' + pid; }
+
+function saveDraft(pid){
+  var d = state.drafts[pid];
+  if (!d) return;
+  if (isEmptyDraft(d) && !matchesSaved(pid, d)) { lsDel(draftKey(pid)); return; }
+  lsSet(draftKey(pid), d);
+}
+function isEmptyDraft(d){
+  if (d.comment) return false;
+  for (var i=0;i<DIMS.length;i++){ if (d.scores[DIMS[i].key] !== '' && d.scores[DIMS[i].key] != null) return false; }
+  return true;
+}
+function loadDrafts(){
+  state.projects.forEach(function(p){
+    var d = lsGet(draftKey(p.id));
+    if (d && d.scores) state.drafts[p.id] = d;
+  });
+}
+
+/* ═══════════════════════ 小工具 ═══════════════════════ */
+function round2(n){ return Math.round(n*100)/100; }
+function fmt2(n){ return (Math.round(n*100)/100).toFixed(2); }
+function fmtTime(ms){
+  if (!ms) return '';
+  var d = new Date(ms), p = function(n){ return n<10 ? '0'+n : ''+n; };
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function toast(text, kind){
+  var el = $('#msg');
+  el.textContent = text || '';
+  el.className = 'dock-msg ' + (kind || 'info');
+  if (kind === 'ok'){
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ if (el.textContent === text) el.textContent = ''; }, 4000);
+  }
+}
+function busy(btn, on, label){
+  if (!btn) return;
+  if (on){
+    if (!btn.dataset.txt) btn.dataset.txt = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span>' + (label || btn.dataset.txt);
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.txt){ btn.textContent = btn.dataset.txt; delete btn.dataset.txt; }
+  }
+}
+
+/* ═══════════════════════ 畫面：構面卡 ═══════════════════════ */
+function buildDims(){
+  $('#dims').innerHTML = DIMS.map(function(d){
+    return '' +
+    '<div class="dim" id="dim-'+d.key+'" style="--c:var(--dim-'+d.key+')">' +
+      '<div class="dim-head">' +
+        '<span class="dim-idx">'+d.idx+'</span>' +
+        '<span class="dim-name">'+d.name+'</span>' +
+        '<span class="dim-max">上限 '+d.max+' 分</span>' +
+      '</div>' +
+      '<div class="dim-row">' +
+        '<button class="stepper" type="button" data-step="'+d.key+'" data-delta="-1" aria-label="'+d.name+' 減 1 分">−</button>' +
+        '<input type="number" id="in-'+d.key+'" inputmode="decimal" autocomplete="off" ' +
+               'min="0" max="'+d.max+'" step="0.01" placeholder="0" ' +
+               'aria-label="'+d.name+'，滿分 '+d.max+' 分">' +
+        '<button class="stepper" type="button" data-step="'+d.key+'" data-delta="1" aria-label="'+d.name+' 加 1 分">＋</button>' +
+      '</div>' +
+      '<input type="range" id="rg-'+d.key+'" min="0" max="'+d.max+'" step="0.5" value="0" ' +
+             'aria-label="'+d.name+' 快速調整" tabindex="-1">' +
+      '<div class="dim-foot">' +
+        '<span class="dim-scale">0 — '+d.max+'</span>' +
+        '<span class="dim-err" id="err-'+d.key+'"></span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  $('#tbar').innerHTML = DIMS.map(function(d){
+    return '<i id="tb-'+d.key+'" style="--c:var(--dim-'+d.key+');width:0"></i>';
+  }).join('');
+
+  DIMS.forEach(function(d){
+    var num = $('#in-'+d.key), rg = $('#rg-'+d.key);
+    num.addEventListener('input', function(){ onScoreInput(d.key, num.value, 'num'); });
+    num.addEventListener('blur',  function(){ normalizeField(d.key); });
+    rg.addEventListener('input',  function(){ onScoreInput(d.key, rg.value, 'range'); });
+  });
+
+  $('#dims').addEventListener('click', function(e){
+    var b = e.target.closest('[data-step]');
+    if (!b || b.disabled) return;
+    var key = b.dataset.step, delta = Number(b.dataset.delta);
+    var d = DIMS.filter(function(x){ return x.key === key; })[0];
+    var cur = Number($('#in-'+key).value);
+    if (!isFinite(cur)) cur = 0;
+    var next = Math.min(d.max, Math.max(0, round2(cur + delta)));
+    onScoreInput(key, String(next), 'num');
+    $('#in-'+key).value = fmtLoose(next);
+  });
+}
+function fmtLoose(n){ return String(round2(n)); }
+
+function onScoreInput(key, raw, src){
+  if (state.locked) return;
+  var d = state.drafts[state.current];
+  if (!d) return;
+  d.scores[key] = raw;
+  if (src === 'range') $('#in-'+key).value = fmtLoose(Number(raw));
+  syncRange(key, raw);
+  validateField(key);
+  updateTotal();
+  saveDraft(state.current);
+  paintRail();
+}
+function syncRange(key, raw){
+  var n = Number(raw), d = DIMS.filter(function(x){ return x.key===key; })[0];
+  var rg = $('#rg-'+key);
+  rg.value = (isFinite(n) && n >= 0 && n <= d.max) ? n : 0;
+}
+function normalizeField(key){
+  var el = $('#in-'+key), raw = String(el.value || '').trim();
+  if (raw === '') return;
+  var n = Number(raw);
+  if (!isFinite(n)) return;
+  var v = round2(n);
+  el.value = (v === Math.trunc(v)) ? String(v) : v.toFixed(2);
+  var d = state.drafts[state.current];
+  if (d){ d.scores[key] = el.value; saveDraft(state.current); }
+  updateTotal();
+}
+
+/** 回傳 {ok, msg}；空值視為「尚未填」而不是錯誤（送出時才擋）。 */
+function checkField(key, raw){
+  var d = DIMS.filter(function(x){ return x.key === key; })[0];
+  var s = String(raw == null ? '' : raw).trim();
+  if (s === '') return { ok:true, empty:true };
+  if (!/^-?\d*\.?\d*$/.test(s)) return { ok:false, msg:'僅能填數字' };
+  var n = Number(s);
+  if (!isFinite(n)) return { ok:false, msg:'僅能填數字' };
+  if (n < 0) return { ok:false, msg:'不可為負分' };
+  if (n > d.max) return { ok:false, msg:'超過上限 ' + d.max + ' 分' };
+  if (/\.\d{3,}$/.test(s)) return { ok:false, msg:'最多兩位小數' };
+  return { ok:true, empty:false, value:round2(n) };
+}
+function validateField(key){
+  var d = state.drafts[state.current];
+  var r = checkField(key, d ? d.scores[key] : '');
+  $('#dim-'+key).classList.toggle('bad', !r.ok);
+  $('#err-'+key).textContent = r.ok ? '' : r.msg;
+  return r;
+}
+function validateAll(){
+  var out = { ok:true, missing:[], bad:[], values:{}, total:0 };
+  DIMS.forEach(function(d){
+    var r = validateField(d.key);
+    if (!r.ok){ out.ok = false; out.bad.push(d.name); return; }
+    if (r.empty){ out.ok = false; out.missing.push(d.name); return; }
+    out.values[d.key] = r.value;
+    out.total = round2(out.total + r.value);
+  });
+  return out;
+}
+
+function updateTotal(){
+  var t = 0, d = state.drafts[state.current];
+  DIMS.forEach(function(dim){
+    var r = checkField(dim.key, d ? d.scores[dim.key] : '');
+    var v = (r.ok && !r.empty) ? r.value : 0;
+    t += v;
+    var bar = $('#tb-'+dim.key);
+    if (bar) bar.style.width = (v / MAX_TOTAL * 100) + '%';
+  });
+  $('#liveTotal').textContent = fmt2(t);
+}
+
+/* ═══════════════════════ 畫面：公司軌 ═══════════════════════ */
+function projectState(pid){
+  var saved = state.saved[pid];
+  var draft = state.drafts[pid];
+  if (draft && !isEmptyDraft(draft) && !matchesSaved(pid, draft)) return 'draft';
+  if (saved) return 'saved';
+  return 'none';
+}
+function matchesSaved(pid, draft){
+  var s = state.saved[pid];
+  if (!s) return false;
+  for (var i=0;i<DIMS.length;i++){
+    var k = DIMS[i].key;
+    var a = String(draft.scores[k] == null ? '' : draft.scores[k]).trim();
+    var b = (s.scores[k] == null) ? '' : String(s.scores[k]);
+    if (a === '' || Number(a) !== Number(b)) return false;
+  }
+  return String(draft.comment || '') === String(s.comment || '');
+}
+
+function buildRail(){
+  $('#rail').innerHTML = state.projects.map(function(p){
+    return '<button class="co" type="button" role="tab" data-pid="'+p.id+'" ' +
+             'title="'+esc(p.team)+'">' +
+             '<span class="n">'+esc(p.id)+'</span>' +
+             '<span class="nm">'+esc(p.team)+'</span>' +
+             '<span class="st"></span>' +
+           '</button>';
+  }).join('');
+  $('#rail').addEventListener('click', function(e){
+    var b = e.target.closest('[data-pid]');
+    if (b) selectProject(b.dataset.pid, true);
+  });
+}
+function paintRail(){
+  state.projects.forEach(function(p){
+    var el = $('#rail [data-pid="'+cssEsc(p.id)+'"]');
+    if (!el) return;
+    el.dataset.state = projectState(p.id);
+    el.setAttribute('aria-current', p.id === state.current ? 'true' : 'false');
+  });
+  var done = countDone();
+  var total = state.projects.length;
+  var C = 2 * Math.PI * 26;
+  $('#ringBar').setAttribute('stroke-dasharray', (total ? done/total*C : 0) + ' ' + C);
+  $('#ringTxt').textContent = done + '/' + total;
+  $('#btnFinal').disabled = state.locked || total === 0;
+}
+function countDone(){
+  var n = 0;
+  state.projects.forEach(function(p){ if (state.saved[p.id]) n++; });
+  return n;
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+  });
+}
+function cssEsc(s){ return String(s).replace(/["\\]/g, '\\$&'); }
+
+/* ═══════════════════════ 切換公司 ═══════════════════════ */
+function selectProject(pid, scroll){
+  var p = state.projects.filter(function(x){ return x.id === pid; })[0];
+  if (!p) return;
+  state.current = pid;
+
+  if (!state.drafts[pid]){
+    var s = state.saved[pid];
+    var scores = {};
+    DIMS.forEach(function(d){
+      scores[d.key] = (s && s.scores[d.key] != null) ? String(s.scores[d.key]) : '';
+    });
+    state.drafts[pid] = { scores:scores, comment:(s && s.comment) || '' };
+  }
+  var draft = state.drafts[pid];
+
+  $('#nowOrd').textContent = p.id;
+  $('#nowName').classList.remove('skel');
+  $('#nowName').textContent = p.team;
+
+  var saved = state.saved[pid];
+  var meta = saved
+    ? '已於 ' + fmtTime(saved.at) + ' 送出，總分 ' + fmt2(saved.total) + ' 分'
+    : '尚未送出評分';
+  if (projectState(pid) === 'draft') meta += '　·　有未送出的變更（已暫存於本機）';
+  $('#nowMeta').textContent = meta;
+
+  DIMS.forEach(function(d){
+    $('#in-'+d.key).value = draft.scores[d.key];
+    syncRange(d.key, draft.scores[d.key]);
+    validateField(d.key);
+  });
+  $('#comment').value = draft.comment || '';
+  updateCmtCount();
+  updateTotal();
+  paintRail();
+  paintList();
+  syncNav();
+
+  if (scroll){
+    var el = $('#rail [data-pid="'+cssEsc(pid)+'"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+  }
+}
+function syncNav(){
+  var i = indexOfCurrent();
+  $('#btnPrev').disabled = (i <= 0);
+  $('#btnNext').disabled = (i < 0 || i >= state.projects.length - 1);
+}
+function indexOfCurrent(){
+  for (var i=0;i<state.projects.length;i++){ if (state.projects[i].id === state.current) return i; }
+  return -1;
+}
+function step(delta){
+  var i = indexOfCurrent() + delta;
+  if (i >= 0 && i < state.projects.length){
+    selectProject(state.projects[i].id, true);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+}
+
+/* ═══════════════════════ 評語 ═══════════════════════ */
+function updateCmtCount(){
+  var n = $('#comment').value.length;
+  var el = $('#cmtCount');
+  el.textContent = n + ' / 300';
+  el.classList.toggle('near', n >= 270);
+}
+
+/* ═══════════════════════ 排名計算 ═══════════════════════ */
+function rankedList(){
+  var rows = state.projects.map(function(p){
+    var s = state.saved[p.id];
+    return {
+      id:p.id, team:p.team,
+      total: s ? s.total : null,
+      scores: s ? s.scores : null,
+      comment: s ? s.comment : '',
+      at: s ? s.at : 0
+    };
+  });
+  var scored = rows.filter(function(r){ return r.total != null; })
+                   .sort(function(a,b){ return b.total - a.total; });
+  var lastVal = null, lastRank = 0;
+  scored.forEach(function(r, i){
+    if (lastVal !== null && r.total === lastVal) r.rank = lastRank;
+    else { r.rank = i + 1; lastRank = r.rank; lastVal = r.total; }
+  });
+  // 標記同分
+  var counts = {};
+  scored.forEach(function(r){ counts[r.total] = (counts[r.total]||0) + 1; });
+  scored.forEach(function(r){ r.tied = counts[r.total] > 1; });
+  return { all: rows, scored: scored };
+}
+
+/* ═══════════════════════ 我的評分總覽 ═══════════════════════ */
+function paintList(){
+  var data = rankedList();
+  var body = $('#listBody');
+  if (!data.scored.length){
+    body.innerHTML = '<div class="empty">尚無評分紀錄。完成第一家公司的評分並送出後，這裡會即時顯示排序與名次。</div>';
+    return;
+  }
+  var rows = data.scored.map(function(r){
+    return '<tr class="' + (r.id === state.current ? 'is-current' : '') + '">' +
+      '<td class="num" style="width:56px">' + esc(r.id) + '</td>' +
+      '<td class="co-name">' + esc(r.team) + '</td>' +
+      '<td style="width:120px">' + miniBars(r.scores) + '</td>' +
+      '<td class="num" style="width:80px">' + fmt2(r.total) + '</td>' +
+      '<td style="text-align:center;width:70px"><span class="rk' +
+        (r.rank === 1 ? ' top1' : '') + (r.tied ? ' tie' : '') + '">' + r.rank + '</span></td>' +
+      '<td style="color:var(--ink-3);font-size:12.5px">' + fmtTime(r.at) + '</td>' +
+      '<td><button class="link-btn" data-goto="' + esc(r.id) + '" type="button">檢視</button></td>' +
+    '</tr>';
+  }).join('');
+
+  var missing = data.all.filter(function(r){ return r.total == null; });
+  var missingRow = missing.length
+    ? '<tr><td colspan="7" style="color:var(--ink-3);font-size:13px;background:var(--surface-2)">' +
+      '尚未評分：' + missing.map(function(m){ return esc(m.id + '｜' + m.team); }).join('、') +
+      '</td></tr>'
+    : '';
+
+  body.innerHTML =
+    '<table class="grid"><thead><tr>' +
+      '<th>順序</th><th>決選公司</th><th>構面分布</th>' +
+      '<th style="text-align:right">總分</th><th style="text-align:center">名次</th>' +
+      '<th>最後更新</th><th>操作</th>' +
+    '</tr></thead><tbody>' + rows + missingRow + '</tbody></table>';
+
+  body.querySelectorAll('[data-goto]').forEach(function(b){
+    b.addEventListener('click', function(){
+      selectProject(b.dataset.goto, true);
+      window.scrollTo({ top:0, behavior:'smooth' });
+    });
+  });
+}
+/** 五構面得分比例的小型長條（配合表格內的數字，非唯一資訊來源）。 */
+function miniBars(scores){
+  if (!scores) return '';
+  return '<span class="mini">' + DIMS.map(function(d){
+    var v = Number(scores[d.key] || 0);
+    var h = Math.max(2, Math.round(v / d.max * 20));
+    return '<i style="--c:var(--dim-'+d.key+');height:'+h+'px" title="'+d.name+' '+fmt2(v)+'/'+d.max+'"></i>';
+  }).join('') + '</span>';
+}
+
+/* ═══════════════════════ 送出評分 ═══════════════════════ */
+function doSave(){
+  if (state.locked){ toast('您已完成最終確認，分數已封存。', 'err'); return; }
+  if (!state.current){ toast('請先選擇公司。', 'err'); return; }
+  if (state.saving) return;
+
+  var v = validateAll();
+  if (!v.ok){
+    var parts = [];
+    if (v.bad.length) parts.push('「' + v.bad.join('」「') + '」填寫格式有誤');
+    if (v.missing.length) parts.push('「' + v.missing.join('」「') + '」尚未填寫');
+    toast(parts.join('；') + '。', 'err');
+    var firstBad = document.querySelector('.dim.bad') ||
+                   $('#dim-' + (DIMS.filter(function(d){
+                     return v.missing.indexOf(d.name) >= 0; })[0] || {}).key);
+    if (firstBad){
+      firstBad.scrollIntoView({ behavior:'smooth', block:'center' });
+      var inp = firstBad.querySelector('input[type=number]');
+      if (inp) inp.focus();
+    }
+    return;
+  }
+
+  var pid = state.current;
+  var p = state.projects.filter(function(x){ return x.id === pid; })[0];
+  var comment = $('#comment').value.trim();
+
+  var payload = { action:'save', judge:JUDGE, projectId:pid, comment:comment };
+  DIMS.forEach(function(d){ payload[d.key] = v.values[d.key]; });
+
+  state.saving = true;
+  busy($('#btnSave'), true, '送出中…');
+  hideNet();
+
+  sendSave(payload, 0)
+    .then(function(res){
+      // 樂觀更新：伺服器成功後立刻同步本地狀態，之後全部操作皆為本機運算
+      state.saved[pid] = {
+        scores: v.values,
+        total: res.total,
+        comment: comment,
+        at: res.at || Date.now()
+      };
+      state.drafts[pid] = {
+        scores: (function(){ var o={}; DIMS.forEach(function(d){ o[d.key]=String(v.values[d.key]); }); return o; })(),
+        comment: comment
+      };
+      lsDel(draftKey(pid));
+      cacheBoot();
+      toast('已送出　' + p.team + '　總分 ' + fmt2(res.total) + ' 分', 'ok');
+      paintRail(); paintList(); selectProject(pid, false);
+
+      if (countDone() >= state.projects.length && !state.locked){
+        setTimeout(function(){ openFinal(); }, 500);
+      } else {
+        var i = indexOfCurrent();
+        if (i >= 0 && i < state.projects.length - 1 && !state.saved[state.projects[i+1].id]){
+          setTimeout(function(){ step(1); }, 450);
+        }
+      }
+    })
+    .catch(function(err){
+      toast(err.message || '送出失敗，請再試一次。', 'err');
+      showNet('fail', '送出失敗：' + (err.message || '網路異常') + '　您填寫的內容已保留。', function(){ doSave(); });
+    })
+    .then(function(){
+      state.saving = false;
+      busy($('#btnSave'), false);
+    });
+}
+
+/** 自動重試 2 次（1s / 3s），只針對網路類錯誤。 */
+function sendSave(payload, attempt){
+  return jsonp(payload).catch(function(err){
+    var retriable = /逾時|無法連線|網路/.test(err.message || '');
+    if (retriable && attempt < 2){
+      showNet('retry', '連線不穩，自動重試中…（第 ' + (attempt+1) + ' 次）');
+      return new Promise(function(r){ setTimeout(r, attempt === 0 ? 1000 : 3000); })
+        .then(function(){ return sendSave(payload, attempt + 1); });
+    }
+    throw err;
+  });
+}
+
+function showNet(kind, text, retryFn){
+  var bar = $('#netbar');
+  bar.className = 'netbar show ' + kind;
+  bar.innerHTML = '<span>' + esc(text) + '</span>';
+  if (retryFn){
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = '重試';
+    b.onclick = function(){ hideNet(); retryFn(); };
+    bar.appendChild(b);
+  }
+}
+function hideNet(){ $('#netbar').className = 'netbar'; }
+
+/* ═══════════════════════ 最終確認 ═══════════════════════ */
+function openFinal(){
+  var data = rankedList();
+  var done = data.scored.length, total = state.projects.length;
+  var complete = done >= total && total > 0;
+
+  $('#finalStatus').className = 'status-strip ' + (complete ? 'good' : 'bad');
+  $('#finalStatus').innerHTML = complete
+    ? '<span>✓</span><span>已完成全部 <span class="big">' + total + '</span> 家公司之評分，可以送出最終確認。</span>'
+    : '<span>!</span><span>已評 <span class="big">' + done + '</span> / ' + total +
+      ' 家，尚有 <b>' + (total - done) + '</b> 家未評分，暫時無法送出最終確認。</span>';
+
+  var ties = data.scored.filter(function(r){ return r.tied; });
+  var tn = $('#tieNote');
+  if (ties.length){
+    tn.style.display = '';
+    tn.innerHTML = '提醒：有 ' + ties.length + ' 家公司總分相同（' +
+      ties.map(function(t){ return esc(t.team) + ' ' + fmt2(t.total); }).join('、') +
+      '），並列相同名次。若希望分出高下，請於送出前調整分數。';
+  } else {
+    tn.style.display = 'none';
+  }
+
+  $('#finalTbody').innerHTML = data.scored.map(function(r){
+    return '<tr>' +
+      '<td class="num" style="width:56px">' + esc(r.id) + '</td>' +
+      '<td class="co-name">' + esc(r.team) + '</td>' +
+      '<td class="num">' + fmt2(r.total) + '</td>' +
+      '<td style="text-align:center"><span class="rk' +
+        (r.rank === 1 ? ' top1' : '') + (r.tied ? ' tie' : '') + '">' + r.rank + '</span></td>' +
+      '<td style="color:var(--ink-3);font-size:12.5px">' + fmtTime(r.at) + '</td>' +
+      '<td><button class="link-btn" data-fix="' + esc(r.id) + '" type="button">修改</button></td>' +
+    '</tr>';
+  }).join('') + data.all.filter(function(r){ return r.total == null; }).map(function(r){
+    return '<tr style="background:#fdf6f6">' +
+      '<td class="num">' + esc(r.id) + '</td>' +
+      '<td class="co-name">' + esc(r.team) + '</td>' +
+      '<td colspan="3" style="color:var(--danger);font-weight:700">尚未評分</td>' +
+      '<td><button class="link-btn" data-fix="' + esc(r.id) + '" type="button">前往評分</button></td>' +
+    '</tr>';
+  }).join('');
+
+  $('#finalTbody').querySelectorAll('[data-fix]').forEach(function(b){
+    b.addEventListener('click', function(){
+      closeFinal();
+      selectProject(b.dataset.fix, true);
+      window.scrollTo({ top:0, behavior:'smooth' });
+    });
+  });
+
+  $('#finalCheck').checked = false;
+  $('#finalCheck').disabled = !complete;
+  $('#finalSubmit').disabled = true;
+  $('#finalMsg').textContent = '';
+  $('#finalModal').classList.add('open');
+}
+function closeFinal(){ $('#finalModal').classList.remove('open'); }
+
+function doConfirm(){
+  if (!$('#finalCheck').checked){
+    $('#finalMsg').textContent = '請先勾選確認聲明。';
+    $('#finalMsg').style.color = 'var(--danger)';
+    return;
+  }
+  busy($('#finalSubmit'), true, '送出中…');
+  $('#finalMsg').textContent = '';
+
+  jsonp({ action:'confirm', judge:JUDGE })
+    .then(function(res){
+      state.locked = true;
+      state.confirmedAt = res.confirmedAt || Date.now();
+      cacheBoot();
+      closeFinal();
+      showDone();
+    })
+    .catch(function(err){
+      $('#finalMsg').textContent = err.message || '送出失敗，請再試一次。';
+      $('#finalMsg').style.color = 'var(--danger)';
+    })
+    .then(function(){ busy($('#finalSubmit'), false); });
+}
+
+function showDone(){
+  $('#doneWho').textContent = JUDGE + (state.org ? '（' + state.org + '）' : '');
+  $('#doneStamp').textContent = '確認時間　' +
+    new Date(state.confirmedAt || Date.now()).toLocaleString('zh-TW');
+  $('#doneScreen').classList.add('open');
+}
+
+/* ═══════════════════════ 鎖定狀態 ═══════════════════════ */
+function applyLock(){
+  if (!state.locked) return;
+  DIMS.forEach(function(d){
+    $('#in-'+d.key).disabled = true;
+    $('#rg-'+d.key).disabled = true;
+  });
+  document.querySelectorAll('.stepper').forEach(function(b){ b.disabled = true; });
+  $('#comment').disabled = true;
+  $('#btnSave').disabled = true;
+  $('#btnFinal').disabled = true;
+  toast('您已完成最終確認，評分已封存，無法再修改。', 'info');
+}
+
+/* ═══════════════════════ 啟動 ═══════════════════════ */
+function cacheBoot(){
+  lsSet(bootKey(), {
+    org: state.org, locked: state.locked, confirmedAt: state.confirmedAt,
+    projects: state.projects, saved: state.saved, at: Date.now()
+  });
+}
+
+function applyBoot(b, fromCache){
+  state.org = b.org || '';
+  state.locked = !!b.locked;
+  state.confirmedAt = b.confirmedAt || 0;
+  state.projects = b.projects || [];
+  state.saved = {};
+  var mine = b.mine || b.saved || {};
+  Object.keys(mine).forEach(function(pid){
+    var m = mine[pid];
+    state.saved[pid] = { scores:m.scores, total:Number(m.total), comment:m.comment || '', at:m.at || 0 };
+  });
+
+  $('#judgeName').textContent = JUDGE;
+  $('#judgeOrg').textContent = state.org || '評選委員';
+
+  buildRail();
+  loadDrafts();
+
+  var target = state.current;
+  if (!target || !state.projects.some(function(p){ return p.id === target; })){
+    // 預設跳到第一家尚未評分的公司
+    var next = state.projects.filter(function(p){ return !state.saved[p.id]; })[0];
+    target = (next || state.projects[0] || {}).id;
+  }
+  if (target) selectProject(target, true);
+  paintRail(); paintList();
+
+  state.ready = true;
+  if (state.locked){ applyLock(); showDone(); }
+  if (!fromCache) cacheBoot();
+}
+
+function boot(){
+  buildDims();
+
+  if (!JUDGE){
+    $('#judgeName').textContent = '未指定評審';
+    $('#judgeOrg').textContent = '請使用專屬連結';
+    $('#nowName').classList.remove('skel');
+    $('#nowName').textContent = '無法載入';
+    toast('網址缺少評審參數，請使用主辦單位提供的專屬連結（?judge=您的姓名職稱）。', 'err');
+    return;
+  }
+
+  // 1) 先用本機快取即時上畫面（重新整理時感覺是「秒開」）
+  var cached = lsGet(bootKey());
+  if (cached && cached.projects && cached.projects.length){
+    applyBoot({
+      org: cached.org, locked: cached.locked, confirmedAt: cached.confirmedAt,
+      projects: cached.projects, mine: cached.saved
+    }, true);
+    toast('顯示本機快取，正在與伺服器同步…', 'info');
+  }
+
+  // 2) 再向後端要一次完整資料（之後全程不再連線，除非送出）
+  jsonp({ action:'bootstrap', judge:JUDGE })
+    .then(function(b){
+      var keep = state.current;
+      applyBoot(b, false);
+      if (keep && state.projects.some(function(p){ return p.id === keep; })) selectProject(keep, false);
+      if (!state.locked) toast('', 'info');
+    })
+    .catch(function(err){
+      if (state.ready){
+        showNet('retry', '無法連線伺服器，目前顯示本機資料：' + (err.message || ''), function(){ boot(); });
+      } else {
+        $('#nowName').classList.remove('skel');
+        $('#nowName').textContent = '載入失敗';
+        toast(err.message || '初始化失敗，請重新整理頁面。', 'err');
+      }
+    });
+}
+
+/* ═══════════════════════ 事件綁定 ═══════════════════════ */
+$('#comment').addEventListener('input', function(){
+  updateCmtCount();
+  var d = state.drafts[state.current];
+  if (d){ d.comment = $('#comment').value; saveDraft(state.current); paintRail(); }
+});
+$('#btnSave').addEventListener('click', doSave);
+$('#btnFinal').addEventListener('click', openFinal);
+$('#btnPrev').addEventListener('click', function(){ step(-1); });
+$('#btnNext').addEventListener('click', function(){ step(1); });
+$('#finalClose').addEventListener('click', closeFinal);
+$('#finalCancel').addEventListener('click', closeFinal);
+$('#finalCheck').addEventListener('change', function(){
+  $('#finalSubmit').disabled = !this.checked;
+});
+$('#finalSubmit').addEventListener('click', doConfirm);
+$('#finalModal').addEventListener('click', function(e){ if (e.target === this) closeFinal(); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape' && $('#finalModal').classList.contains('open')) closeFinal();
+});
+
+/* 防呆：仍有未送出的變更就離開頁面時提醒 */
+window.addEventListener('beforeunload', function(e){
+  if (state.locked) return;
+  var dirty = state.projects.some(function(p){ return projectState(p.id) === 'draft'; });
+  if (dirty){ e.preventDefault(); e.returnValue = ''; }
+});
+
+boot();
+</script>
+</body>
+</html>

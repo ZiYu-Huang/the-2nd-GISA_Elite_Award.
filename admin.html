@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2b57'/%3E%3Cpath d='M20 44V20h24' stroke='%23c8a34a' stroke-width='6' fill='none'/%3E%3Cpath d='M20 44h24V32H32' stroke='%23e3c887' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<title>後台監控 — 第二屆 GISA 創櫃菁英選拔</title>
+<style>
+:root{
+  color-scheme:light;
+  --navy-900:#08213f; --navy-800:#0b2b57; --navy-700:#123f7d; --navy-600:#1a559f;
+  --gold-500:#c8a34a; --gold-300:#e3c887;
+
+  --page:#f2f5f9;
+  --surface:#ffffff;
+  --surface-2:#f7f9fc;
+  --ink:#0f172a; --ink-2:#475569; --ink-3:#7c8798;
+  --line:#e3e8f0; --line-strong:#cbd5e1;
+
+  --ok:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+
+  --dim-I:#2a78d6; --dim-M:#eb6834; --dim-T:#1baf7a; --dim-E:#eda100; --dim-F:#e87ba4;
+
+  /* 連續色階（藍，淺→深）：用於矩陣熱區 */
+  --s1:#cde2fb; --s2:#9ec5f4; --s3:#6da7ec; --s4:#3987e5; --s5:#256abf; --s6:#184f95; --s7:#0d366b;
+
+  --shadow-1:0 1px 2px rgba(15,23,42,.06), 0 2px 8px rgba(15,23,42,.05);
+  --shadow-2:0 10px 30px rgba(15,23,42,.12);
+  --font:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0f;
+  --surface:#17181c;
+  --surface-2:#1f2027;
+  --ink:#ffffff; --ink-2:#c3c2c7; --ink-3:#8b8b93;
+  --line:#2c2d33; --line-strong:#3d3e46;
+
+  --dim-I:#3987e5; --dim-M:#d95926; --dim-T:#199e70; --dim-E:#c98500; --dim-F:#d55181;
+  /* 深色面上倒轉：低分深、高分亮 */
+  --s1:#0d366b; --s2:#184f95; --s3:#256abf; --s4:#3987e5; --s5:#6da7ec; --s6:#9ec5f4; --s7:#cde2fb;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 10px 30px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--font);background:var(--page);color:var(--ink);-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:3px solid var(--navy-600);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ── 頁首 ── */
+.top{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(135deg,var(--navy-900),var(--navy-800) 60%,var(--navy-700));
+  color:#fff;box-shadow:0 2px 14px rgba(8,33,63,.35);
+}
+.top-in{max-width:1560px;margin:0 auto;padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.brand .mk{
+  width:40px;height:40px;border-radius:11px;flex:0 0 auto;
+  background:linear-gradient(150deg,var(--gold-300),var(--gold-500));color:var(--navy-900);
+  display:grid;place-items:center;font-weight:800;font-size:11px;line-height:1.1;text-align:center;
+}
+.brand h1{margin:0;font-size:16px;font-weight:800;letter-spacing:.4px}
+.brand .s{font-size:11.5px;color:#b9cbe4;margin-top:2px}
+.top-tools{margin-left:auto;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.tbtn{
+  padding:8px 13px;border-radius:9px;font-size:13px;font-weight:700;
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;
+}
+.tbtn:hover{background:rgba(255,255,255,.24)}
+.tbtn[aria-pressed="true"]{background:var(--gold-500);border-color:var(--gold-500);color:var(--navy-900)}
+.live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#c3d3e8;font-variant-numeric:tabular-nums}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(12,163,12,.6);animation:pulse 2s infinite}
+.dot.off{background:var(--ink-3);animation:none}
+.dot.err{background:var(--critical);animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 7px rgba(12,163,12,0)}100%{box-shadow:0 0 0 0 rgba(12,163,12,0)}}
+
+/* ── 版面 ── */
+.wrap{max-width:1560px;margin:0 auto;padding:20px 22px 60px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 17px;box-shadow:var(--shadow-1)}
+.kpi .k{font-size:11.5px;letter-spacing:1.4px;color:var(--ink-3);font-weight:800}
+.kpi .v{font-size:31px;font-weight:800;line-height:1.15;margin-top:7px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:15px;color:var(--ink-3);font-weight:700}
+.kpi .m{font-size:12.5px;color:var(--ink-3);margin-top:5px}
+.kpi .track{height:6px;border-radius:99px;background:var(--line);margin-top:10px;overflow:hidden}
+.kpi .track i{display:block;height:100%;border-radius:99px;background:var(--navy-600);transition:width .4s}
+.kpi.done .track i{background:var(--ok)}
+.kpi .lead{font-size:18px;font-weight:800;margin-top:6px;line-height:1.35;word-break:break-all}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tab{
+  padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:700;
+  background:var(--surface);border:1.5px solid var(--line);color:var(--ink-2);
+}
+.tab:hover{border-color:var(--navy-600);color:var(--navy-700)}
+.tab[aria-selected="true"]{background:var(--navy-800);border-color:var(--navy-800);color:#fff}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-1);overflow:hidden}
+.panel + .panel{margin-top:18px}
+.panel-head{padding:15px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.panel-head h2{margin:0;font-size:15px;font-weight:800;letter-spacing:.3px}
+.panel-head .d{font-size:12.5px;color:var(--ink-3)}
+.panel-head .r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sbtn{padding:6px 12px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--surface);font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.sbtn:hover{border-color:var(--navy-600);color:var(--navy-700)}
+.hide{display:none!important}
+
+/* ── 表格 ── */
+.scroll{overflow:auto;max-width:100%}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{
+  font-size:11px;letter-spacing:.8px;color:var(--ink-3);font-weight:800;
+  background:var(--surface-2);position:sticky;top:0;z-index:2;
+}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.co{white-space:normal;min-width:200px;font-weight:600}
+tbody tr:hover{background:var(--surface-2)}
+.sticky-l{position:sticky;left:0;background:var(--surface);z-index:1}
+thead .sticky-l{background:var(--surface-2);z-index:3}
+tbody tr:hover .sticky-l{background:var(--surface-2)}
+
+.rk{
+  display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 7px;border-radius:8px;
+  background:var(--surface-2);border:1px solid var(--line);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.rk.g1{background:linear-gradient(150deg,var(--gold-300),var(--gold-500));border-color:var(--gold-500);color:var(--navy-900)}
+.rk.g2{background:linear-gradient(150deg,#e8eaee,#b9bfc9);border-color:#b9bfc9;color:#2b2f36}
+.rk.g3{background:linear-gradient(150deg,#e8c9a8,#c99b6a);border-color:#c99b6a;color:#4a2f14}
+
+/* 總分長條（末端圓角、貼齊基線） */
+.barcell{min-width:210px}
+.bar{height:12px;border-radius:0 4px 4px 0;background:var(--navy-600);display:block}
+:root[data-theme="dark"] .bar{background:#3987e5}
+.barrow{display:flex;align-items:center;gap:9px}
+.barrow .v{font-variant-numeric:tabular-nums;font-weight:800;min-width:52px;text-align:right}
+.barrow .track{flex:1 1 auto;background:var(--line);border-radius:0 4px 4px 0;min-width:80px}
+
+/* 構面堆疊條：段之間 2px 表面色間隙 */
+.stack{display:flex;height:16px;border-radius:0 4px 4px 0;overflow:hidden;min-width:180px}
+.stack i{display:block;height:100%;background:var(--c)}
+.stack i + i{margin-left:2px}
+
+/* 熱區 */
+.cell{
+  text-align:center;font-variant-numeric:tabular-nums;font-weight:700;
+  border-bottom:2px solid var(--surface);border-right:2px solid var(--surface);
+  min-width:62px;
+}
+.cell.na{color:var(--ink-3);font-weight:600;background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--line) 5px,var(--line) 6px)}
+.legend{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
+.legend .sw{display:flex;border-radius:4px;overflow:hidden}
+.legend .sw i{width:22px;height:12px;display:block}
+.chips{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-2)}
+.chips span{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.chips b{width:11px;height:11px;border-radius:3px;background:var(--c);display:inline-block}
+
+.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:800;border:1px solid}
+.pill.ok{background:#eaf7ea;border-color:#b7e3b7;color:#125e12}
+.pill.wait{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink-3)}
+:root[data-theme="dark"] .pill.ok{background:#0f2b0f;border-color:#1e5c1e;color:#7fd97f}
+
+.cmt-item{padding:14px 20px;border-bottom:1px solid var(--line)}
+.cmt-item:last-child{border-bottom:none}
+.cmt-meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.cmt-meta .who{font-weight:800;font-size:13.5px}
+.cmt-meta .co{font-size:12.5px;color:var(--ink-3)}
+.cmt-meta .sc{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:800;font-size:14px}
+.cmt-text{font-size:14px;line-height:1.75;color:var(--ink-2);white-space:pre-wrap}
+
+.empty{padding:44px 20px;text-align:center;color:var(--ink-3);font-size:14px}
+.gate{max-width:440px;margin:100px auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:var(--shadow-2)}
+.gate h2{margin:0 0 8px;font-size:19px}
+.gate p{color:var(--ink-3);font-size:13.5px;line-height:1.7;margin:0 0 16px}
+.gate input{width:100%;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-size:15px;margin-bottom:12px;background:var(--surface)}
+.gate button{width:100%;padding:13px;border-radius:11px;background:var(--navy-800);color:#fff;font-weight:800;font-size:15px}
+.gate .err{color:var(--critical);font-size:13px;font-weight:700;margin-top:10px;min-height:18px}
+
+/* 投影模式：放大排名 */
+body.project .kpis{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+body.project #view-rank table{font-size:19px}
+body.project #view-rank th,body.project #view-rank td{padding:14px 16px}
+body.project #view-rank .rk{min-width:34px;height:34px;font-size:17px}
+body.project .tabs,body.project .panel-head .r{opacity:.6}
+
+@media (max-width:720px){
+  .wrap{padding:16px 14px 50px}
+  .top-in{padding:11px 14px}
+  th,td{padding:9px 10px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="mk">GISA<br>菁英</div>
+      <div>
+        <h1>第二屆 GISA 創櫃菁英選拔　後台即時監控</h1>
+        <div class="s" id="subline">連線中…</div>
+      </div>
+    </div>
+    <div class="top-tools">
+      <div class="live"><span class="dot" id="dot"></span><span id="liveTxt">連線中</span></div>
+      <button class="tbtn" id="btnAuto" aria-pressed="true" type="button">自動更新</button>
+      <button class="tbtn" id="btnRefresh" type="button">立即更新</button>
+      <button class="tbtn" id="btnTheme" aria-pressed="false" type="button">投影模式</button>
+      <button class="tbtn" id="btnCsv" type="button">匯出 CSV</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app" hidden>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="rank"   aria-selected="true">即時排名</button>
+    <button class="tab" role="tab" data-view="matrix" aria-selected="false">評分矩陣</button>
+    <button class="tab" role="tab" data-view="dims"   aria-selected="false">構面分析</button>
+    <button class="tab" role="tab" data-view="judges" aria-selected="false">評審進度</button>
+    <button class="tab" role="tab" data-view="cmts"   aria-selected="false">評語彙整</button>
+  </div>
+
+  <!-- 即時排名 -->
+  <section class="panel" id="view-rank">
+    <div class="panel-head">
+      <h2>即時排名</h2>
+      <span class="d" id="rankDesc"></span>
+    </div>
+    <div class="scroll"><table id="rankTable"></table></div>
+  </section>
+
+  <!-- 評分矩陣 -->
+  <section class="panel hide" id="view-matrix">
+    <div class="panel-head">
+      <h2>評分矩陣</h2>
+      <span class="d">每格為該評審給該公司的總分；斜線代表尚未評分。</span>
+      <div class="r">
+        <div class="legend">
+          <span>低</span>
+          <span class="sw"><i style="background:var(--s1)"></i><i style="background:var(--s2)"></i><i style="background:var(--s3)"></i><i style="background:var(--s4)"></i><i style="background:var(--s5)"></i><i style="background:var(--s6)"></i><i style="background:var(--s7)"></i></span>
+          <span>高</span>
+          <span id="scaleTxt"></span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll"><table id="matrixTable"></table></div>
+  </section>
+
+  <!-- 構面分析 -->
+  <section class="panel hide" id="view-dims">
+    <div class="panel-head">
+      <h2>各構面平均</h2>
+      <span class="d">依總分排序。堆疊條顯示五構面的得分組成。</span>
+      <div class="r"><div class="chips" id="dimLegend2"></div></div>
+    </div>
+    <div class="scroll"><table id="dimTable"></table></div>
+  </section>
+
+  <!-- 評審進度 -->
+  <section class="panel hide" id="view-judges">
+    <div class="panel-head">
+      <h2>評審進度與評分風格</h2>
+      <span class="d">平均／全距／標準差可看出各評審的寬嚴與鑑別度。</span>
+    </div>
+    <div class="scroll"><table id="judgeTable"></table></div>
+    <div class="panel-head" style="border-top:1px solid var(--line);border-bottom:none">
+      <h2>尚未完成的評分</h2>
+      <span class="d" id="pendDesc"></span>
+    </div>
+    <div id="pending"></div>
+  </section>
+
+  <!-- 評語彙整 -->
+  <section class="panel hide" id="view-cmts">
+    <div class="panel-head">
+      <h2>評語彙整</h2>
+      <div class="r">
+        <select id="cmtFilter" class="sbtn" style="padding:7px 10px"></select>
+        <span class="d" id="cmtCount"></span>
+      </div>
+    </div>
+    <div id="cmtList"></div>
+  </section>
+</main>
+
+<div class="gate" id="gate" hidden>
+  <h2>後台監控</h2>
+  <p>請輸入後台金鑰。金鑰可在 Google 試算表的「設定」工作表中查看，或在 Apps Script 執行 <code>showAdminKey()</code>。</p>
+  <input type="password" id="keyInput" placeholder="後台金鑰" autocomplete="off">
+  <button id="keyGo" type="button">進入後台</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   設定：部署後只需要改這一行（與 index.html 相同的網址）
+   ═══════════════════════════════════════════════════════════ */
+var API_URL = 'PUT_YOUR_GAS_WEBAPP_URL_HERE';
+
+/* 熱區色階的固定值域：固定範圍能讓顏色在即時更新時保持穩定 */
+var HEAT_MIN = 55, HEAT_MAX = 100;
+var POLL_MS = 4000;
+
+var $ = function(s){ return document.querySelector(s); };
+var LSK = 'gisa2.adminkey';
+var KEY = new URLSearchParams(location.search).get('key') || localStorage.getItem(LSK) || '';
+
+var D = { v:-1, dims:[], projects:[], judges:[], records:[] };
+var auto = true, timer = null, view = 'rank', lastOk = 0;
+
+/* ── JSONP ── */
+var seq = 0;
+function jsonp(params, timeoutMs){
+  timeoutMs = timeoutMs || 20000;
+  return new Promise(function(resolve, reject){
+    if (!API_URL || API_URL.indexOf('PUT_YOUR') === 0){
+      reject(new Error('尚未設定 API_URL')); return;
+    }
+    var cb = 'acb' + (++seq) + '_' + Date.now().toString(36);
+    var s = document.createElement('script');
+    var t = setTimeout(function(){ done(new Error('連線逾時')); }, timeoutMs);
+    window[cb] = function(d){ (d && d.ok === false) ? done(new Error(d.error||'錯誤')) : done(null, d); };
+    function done(err, d){
+      clearTimeout(t);
+      try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+      if (s.parentNode) s.parentNode.removeChild(s);
+      err ? reject(err) : resolve(d);
+    }
+    var qs = new URLSearchParams(params);
+    qs.set('callback', cb); qs.set('_', String(Date.now()));
+    s.src = API_URL + (API_URL.indexOf('?')>=0?'&':'?') + qs.toString();
+    s.onerror = function(){ done(new Error('無法連線')); };
+    document.head.appendChild(s);
+  });
+}
+
+/* ── 小工具 ── */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function f2(n){ return (Math.round(n*100)/100).toFixed(2); }
+function f1(n){ return (Math.round(n*10)/10).toFixed(1); }
+function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+function hhmmss(ms){
+  var d = new Date(ms), p = function(n){ return n<10?'0'+n:''+n; };
+  return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+function mean(a){ return a.length ? a.reduce(function(s,x){return s+x;},0)/a.length : 0; }
+function stdev(a){
+  if (a.length < 2) return 0;
+  var m = mean(a);
+  return Math.sqrt(a.reduce(function(s,x){ return s + (x-m)*(x-m); },0) / (a.length - 1));
+}
+/** 分數 → 色階格（0–6）。固定值域，讓顏色在即時更新時不會整片跳動。 */
+function heatStep(v){
+  var t = clamp((v - HEAT_MIN) / (HEAT_MAX - HEAT_MIN), 0, 1);
+  return Math.min(6, Math.floor(t * 7));
+}
+function heatVar(v){ return 'var(--s' + (heatStep(v) + 1) + ')'; }
+/**
+ * 文字色依「色階格」而非原始分數決定，同一底色不會出現兩種文字色。
+ * 深色模式的色階是反轉的（s1 深、s7 淺），因此判斷條件也要跟著反轉；
+ * 這裡回傳實際色碼而非 var(--ink)，否則深色模式下淺色格會配到白字。
+ */
+function heatInk(v){
+  var s = heatStep(v);
+  var darkCell = document.documentElement.dataset.theme === 'dark' ? (s <= 2) : (s >= 4);
+  return darkCell ? '#ffffff' : '#0f172a';
+}
+
+/* ── 衍生資料 ── */
+function derive(){
+  var byPid = {};
+  D.projects.forEach(function(p){
+    byPid[p.id] = { id:p.id, team:p.team, totals:[], dims:D.dims.map(function(){ return []; }), recs:[] };
+  });
+  D.records.forEach(function(r){
+    var b = byPid[r.pid];
+    if (!b) return;
+    b.totals.push(r.total);
+    r.s.forEach(function(v,i){ if (v != null) b.dims[i].push(Number(v)); });
+    b.recs.push(r);
+  });
+
+  var rows = D.projects.map(function(p){
+    var b = byPid[p.id];
+    return {
+      id:p.id, team:p.team, n:b.totals.length,
+      avg: b.totals.length ? mean(b.totals) : null,
+      min: b.totals.length ? Math.min.apply(null, b.totals) : null,
+      max: b.totals.length ? Math.max.apply(null, b.totals) : null,
+      sd:  stdev(b.totals),
+      dimAvg: b.dims.map(function(a){ return a.length ? mean(a) : 0; })
+    };
+  });
+
+  var scored = rows.filter(function(r){ return r.n > 0; })
+                   .sort(function(a,b){ return b.avg - a.avg; });
+  var lv = null, lr = 0;
+  scored.forEach(function(r,i){
+    if (lv !== null && Math.abs(r.avg - lv) < 1e-9) r.rank = lr;
+    else { r.rank = i+1; lr = r.rank; lv = r.avg; }
+  });
+
+  var judgeStats = D.judges.map(function(j){
+    var mine = D.records.filter(function(r){ return r.judge === j.name; });
+    var totals = mine.map(function(r){ return r.total; });
+    return {
+      name:j.name, org:j.org, confirmed:j.confirmed, confirmedAt:j.confirmedAt,
+      n: mine.length,
+      avg: totals.length ? mean(totals) : null,
+      min: totals.length ? Math.min.apply(null,totals) : null,
+      max: totals.length ? Math.max.apply(null,totals) : null,
+      sd:  stdev(totals),
+      done: {}, last: mine.length ? Math.max.apply(null, mine.map(function(r){ return r.at||0; })) : 0
+    };
+  });
+  var jmap = {};
+  judgeStats.forEach(function(j){ jmap[j.name] = j; });
+  D.records.forEach(function(r){ if (jmap[r.judge]) jmap[r.judge].done[r.pid] = r; });
+
+  return { rows:rows, scored:scored, judges:judgeStats, byPid:byPid };
+}
+
+/* ── KPI ── */
+function paintKpis(M){
+  var cells = D.judges.length * D.projects.length;
+  var filled = D.records.length;
+  var confirmed = D.judges.filter(function(j){ return j.confirmed; }).length;
+  var lead = M.scored[0];
+
+  $('#kpis').innerHTML =
+    kpi('評分完成度', filled + '<small> / ' + cells + '</small>',
+        cells ? Math.round(filled/cells*100) + '％ 的格子已填' : '尚無資料',
+        cells ? filled/cells : 0, filled >= cells && cells > 0) +
+    kpi('最終確認', confirmed + '<small> / ' + D.judges.length + '</small>',
+        (confirmed >= D.judges.length && D.judges.length)
+          ? '全體評審皆已完成確認'
+          : '尚有 ' + (D.judges.length - confirmed) + ' 位評審未送出最終確認',
+        D.judges.length ? confirmed/D.judges.length : 0, confirmed >= D.judges.length && D.judges.length > 0) +
+    '<div class="kpi"><div class="k">目前領先</div>' +
+      (lead ? '<div class="lead">' + esc(lead.team) + '</div><div class="m">平均 ' + f2(lead.avg) +
+              ' 分（' + lead.n + ' 位評審）</div>'
+            : '<div class="v">—</div><div class="m">尚無評分</div>') +
+    '</div>' +
+    '<div class="kpi"><div class="k">資料更新</div><div class="v" style="font-size:26px" id="kpiTime">—</div>' +
+      '<div class="m" id="kpiVer">資料版本 v' + D.v + '</div></div>';
+  $('#kpiTime').textContent = lastOk ? hhmmss(lastOk) : '—';
+}
+function kpi(k, v, m, ratio, done){
+  return '<div class="kpi' + (done ? ' done' : '') + '">' +
+    '<div class="k">' + k + '</div><div class="v">' + v + '</div>' +
+    '<div class="track"><i style="width:' + Math.round(clamp(ratio,0,1)*100) + '%"></i></div>' +
+    '<div class="m">' + m + '</div></div>';
+}
+
+/* ── 圖例 ── */
+function paintLegend(){
+  // 圖例只掛在真正用到構面色的「構面分析」面板
+  $('#dimLegend2').innerHTML = D.dims.map(function(d){
+    return '<span style="--c:var(--dim-'+d.key+')"><b></b>' + esc(d.name) +
+           '<span style="color:var(--ink-3);font-weight:600">（'+d.max+'）</span></span>';
+  }).join('');
+  $('#scaleTxt').textContent = '（' + HEAT_MIN + ' – ' + HEAT_MAX + ' 分）';
+}
+
+/* ── 即時排名 ── */
+function paintRank(M){
+  $('#rankDesc').textContent = '共 ' + D.projects.length + ' 家公司　·　平均分數為各評審總分之算術平均';
+  if (!M.scored.length){
+    $('#rankTable').innerHTML = '<tbody><tr><td class="empty">尚無任何評分紀錄。</td></tr></tbody>';
+    return;
+  }
+  var maxAvg = M.scored[0].avg || 1;
+  var head = '<thead><tr>' +
+    '<th class="sticky-l" style="width:64px">名次</th><th style="width:56px">順序</th><th>決選公司</th>' +
+    '<th class="num" style="width:88px">平均</th>' +
+    '<th style="width:250px">分數分布</th>' +
+    '<th class="num" style="width:70px">最高</th><th class="num" style="width:70px">最低</th>' +
+    '<th class="num" style="width:78px">標準差</th><th class="num" style="width:80px">已評人數</th>' +
+    '</tr></thead>';
+  var body = M.scored.map(function(r){
+    var w = Math.round(r.avg / maxAvg * 100);
+    return '<tr>' +
+      '<td class="sticky-l"><span class="rk' + (r.rank<=3 ? ' g'+r.rank : '') + '">' + r.rank + '</span></td>' +
+      '<td class="num">' + esc(r.id) + '</td>' +
+      '<td class="co">' + esc(r.team) + '</td>' +
+      '<td class="num" style="font-weight:800;font-size:15px">' + f2(r.avg) + '</td>' +
+      '<td class="barcell"><div class="barrow"><div class="track"><span class="bar" style="width:' + w + '%"></span></div></div></td>' +
+      '<td class="num">' + f2(r.max) + '</td>' +
+      '<td class="num">' + f2(r.min) + '</td>' +
+      '<td class="num" style="color:var(--ink-3)">' + f2(r.sd) + '</td>' +
+      '<td class="num">' + r.n + ' / ' + D.judges.length + '</td>' +
+    '</tr>';
+  }).join('');
+  var rest = M.rows.filter(function(r){ return r.n === 0; }).map(function(r){
+    return '<tr><td class="sticky-l">—</td><td class="num">' + esc(r.id) + '</td>' +
+      '<td class="co">' + esc(r.team) + '</td>' +
+      '<td colspan="6" style="color:var(--ink-3)">尚無評分</td></tr>';
+  }).join('');
+  $('#rankTable').innerHTML = head + '<tbody>' + body + rest + '</tbody>';
+}
+
+/* ── 評分矩陣 ── */
+function paintMatrix(M){
+  var head = '<thead><tr><th class="sticky-l" style="min-width:210px">公司 ＼ 評審</th>' +
+    D.judges.map(function(j){
+      return '<th class="num" style="min-width:82px">' + esc(j.name) +
+             (j.confirmed ? ' <span title="已最終確認" style="color:var(--ok)">✓</span>' : '') + '</th>';
+    }).join('') +
+    '<th class="num" style="min-width:78px">平均</th></tr></thead>';
+
+  var body = D.projects.map(function(p){
+    var row = M.rows.filter(function(r){ return r.id === p.id; })[0];
+    var tds = M.judges.map(function(j){
+      var rec = j.done[p.id];
+      if (!rec) return '<td class="cell na" title="尚未評分">–</td>';
+      return '<td class="cell" style="background:' + heatVar(rec.total) + ';color:' + heatInk(rec.total) + '" ' +
+             'title="' + esc(j.name + '｜' + p.team) + '\n' +
+             D.dims.map(function(d,i){ return d.name + ' ' + f2(rec.s[i]||0) + '/' + d.max; }).join('\n') +
+             '\n總分 ' + f2(rec.total) + '">' + f2(rec.total) + '</td>';
+    }).join('');
+    return '<tr><td class="sticky-l co">' +
+      '<span style="color:var(--ink-3);font-variant-numeric:tabular-nums">' + esc(p.id) + '</span>　' + esc(p.team) +
+      '</td>' + tds +
+      '<td class="num" style="font-weight:800">' + (row && row.avg != null ? f2(row.avg) : '—') + '</td></tr>';
+  }).join('');
+
+  var foot = '<tr><td class="sticky-l" style="font-weight:800">評審平均</td>' +
+    M.judges.map(function(j){
+      return '<td class="num" style="font-weight:800">' + (j.avg != null ? f2(j.avg) : '—') + '</td>';
+    }).join('') + '<td></td></tr>';
+
+  $('#matrixTable').innerHTML = head + '<tbody>' + body + foot + '</tbody>';
+}
+
+/* ── 構面分析 ── */
+function paintDims(M){
+  var head = '<thead><tr><th class="sticky-l" style="width:56px">順序</th><th>決選公司</th>' +
+    D.dims.map(function(d){ return '<th class="num" style="min-width:96px">' + esc(d.name) + '<br><span style="font-weight:600">上限 ' + d.max + '</span></th>'; }).join('') +
+    '<th style="min-width:200px">組成</th><th class="num" style="width:84px">總平均</th></tr></thead>';
+
+  var list = M.scored.concat(M.rows.filter(function(r){ return r.n === 0; }));
+  var body = list.map(function(r){
+    var cells = D.dims.map(function(d,i){
+      var v = r.dimAvg[i];
+      var pct = Math.round(v / d.max * 100);
+      return '<td class="num" title="' + esc(d.name) + ' 平均 ' + f2(v) + ' / ' + d.max + '（' + pct + '％）">' +
+             (r.n ? f2(v) : '—') +
+             '<div style="height:4px;border-radius:0 2px 2px 0;background:var(--dim-'+d.key+');width:'+pct+'%;margin-top:4px;margin-left:auto"></div></td>';
+    }).join('');
+    var stack = r.n ? '<div class="stack">' + D.dims.map(function(d,i){
+      return '<i style="--c:var(--dim-'+d.key+');width:' + (r.dimAvg[i]/100*100) + '%"></i>';
+    }).join('') + '</div>' : '<span style="color:var(--ink-3)">—</span>';
+    return '<tr><td class="sticky-l num">' + esc(r.id) + '</td><td class="co">' + esc(r.team) + '</td>' +
+      cells + '<td>' + stack + '</td>' +
+      '<td class="num" style="font-weight:800">' + (r.n ? f2(r.avg) : '—') + '</td></tr>';
+  }).join('');
+
+  var avgAll = D.dims.map(function(d,i){
+    var vals = M.rows.filter(function(r){ return r.n>0; }).map(function(r){ return r.dimAvg[i]; });
+    return vals.length ? mean(vals) : 0;
+  });
+  var foot = '<tr><td class="sticky-l"></td><td style="font-weight:800">全體平均</td>' +
+    avgAll.map(function(v){ return '<td class="num" style="font-weight:800">' + f2(v) + '</td>'; }).join('') +
+    '<td></td><td class="num" style="font-weight:800">' + f2(avgAll.reduce(function(s,x){return s+x;},0)) + '</td></tr>';
+
+  $('#dimTable').innerHTML = head + '<tbody>' + body + foot + '</tbody>';
+}
+
+/* ── 評審進度 ── */
+function paintJudges(M){
+  var total = D.projects.length;
+  var head = '<thead><tr><th class="sticky-l" style="min-width:170px">評審</th><th style="min-width:180px">單位</th>' +
+    '<th style="min-width:160px">進度</th><th class="num">平均</th><th class="num">最高</th><th class="num">最低</th>' +
+    '<th class="num">全距</th><th class="num">標準差</th><th>最後送出</th><th>最終確認</th></tr></thead>';
+
+  var body = M.judges.map(function(j){
+    var pct = total ? Math.round(j.n/total*100) : 0;
+    return '<tr>' +
+      '<td class="sticky-l" style="font-weight:800">' + esc(j.name) + '</td>' +
+      '<td style="color:var(--ink-3);white-space:normal">' + esc(j.org) + '</td>' +
+      '<td><div class="barrow"><span class="v" style="min-width:46px">' + j.n + '/' + total + '</span>' +
+        '<div class="track" style="height:10px"><span class="bar" style="height:10px;width:' + pct + '%;' +
+        (j.n>=total && total ? 'background:var(--ok)' : '') + '"></span></div></div></td>' +
+      '<td class="num">' + (j.avg!=null?f2(j.avg):'—') + '</td>' +
+      '<td class="num">' + (j.max!=null?f2(j.max):'—') + '</td>' +
+      '<td class="num">' + (j.min!=null?f2(j.min):'—') + '</td>' +
+      '<td class="num">' + (j.max!=null?f2(j.max-j.min):'—') + '</td>' +
+      '<td class="num" style="color:var(--ink-3)">' + f2(j.sd) + '</td>' +
+      '<td style="color:var(--ink-3);font-size:12.5px">' + (j.last?hhmmss(j.last):'—') + '</td>' +
+      '<td>' + (j.confirmed
+        ? '<span class="pill ok">已確認 ' + (j.confirmedAt?hhmmss(j.confirmedAt):'') + '</span>'
+        : '<span class="pill wait">尚未確認</span>') + '</td>' +
+    '</tr>';
+  }).join('');
+  $('#judgeTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+
+  var pend = [];
+  M.judges.forEach(function(j){
+    var miss = D.projects.filter(function(p){ return !j.done[p.id]; });
+    if (miss.length) pend.push({ j:j, miss:miss });
+  });
+  $('#pendDesc').textContent = pend.length
+    ? '共 ' + pend.reduce(function(s,x){ return s + x.miss.length; },0) + ' 筆待補'
+    : '';
+  $('#pending').innerHTML = pend.length
+    ? pend.map(function(x){
+        return '<div class="cmt-item"><div class="cmt-meta">' +
+          '<span class="who">' + esc(x.j.name) + '</span>' +
+          '<span class="co">' + esc(x.j.org) + '</span>' +
+          '<span class="sc" style="color:var(--critical)">缺 ' + x.miss.length + ' 家</span></div>' +
+          '<div class="cmt-text">' + x.miss.map(function(m){ return esc(m.id + '｜' + m.team); }).join('、') + '</div></div>';
+      }).join('')
+    : '<div class="empty">✓ 所有評審皆已完成全部公司的評分。</div>';
+}
+
+/* ── 評語 ── */
+function paintCmts(M){
+  var sel = $('#cmtFilter');
+  var keep = sel.value;
+  sel.innerHTML = '<option value="">全部公司</option>' +
+    D.projects.map(function(p){ return '<option value="' + esc(p.id) + '">' + esc(p.id + '｜' + p.team) + '</option>'; }).join('') +
+    '<optgroup label="依評審">' +
+    D.judges.map(function(j){ return '<option value="J:' + esc(j.name) + '">' + esc(j.name) + '</option>'; }).join('') +
+    '</optgroup>';
+  if (keep) sel.value = keep;
+
+  var teamOf = {};
+  D.projects.forEach(function(p){ teamOf[p.id] = p.team; });
+
+  var items = D.records.filter(function(r){ return r.comment && r.comment.trim(); });
+  var f = sel.value;
+  if (f && f.indexOf('J:') === 0){
+    var jn = f.slice(2);
+    items = items.filter(function(r){ return r.judge === jn; });
+  } else if (f){
+    items = items.filter(function(r){ return r.pid === f; });
+  }
+  items.sort(function(a,b){
+    return (Number(a.pid) - Number(b.pid)) || a.judge.localeCompare(b.judge, 'zh-Hant');
+  });
+
+  $('#cmtCount').textContent = '共 ' + items.length + ' 則';
+  $('#cmtList').innerHTML = items.length
+    ? items.map(function(r){
+        return '<div class="cmt-item"><div class="cmt-meta">' +
+          '<span class="who">' + esc(r.judge) + '</span>' +
+          '<span class="co">' + esc(r.pid + '｜' + (teamOf[r.pid]||'')) + '</span>' +
+          '<span class="sc">' + f2(r.total) + '</span></div>' +
+          '<div class="cmt-text">' + esc(r.comment) + '</div></div>';
+      }).join('')
+    : '<div class="empty">目前沒有符合條件的評語。</div>';
+}
+
+/* ── 匯出 CSV ── */
+function exportCsv(M){
+  var teamOf = {};
+  D.projects.forEach(function(p){ teamOf[p.id] = p.team; });
+
+  var lines = [];
+  lines.push(['【明細】評審','簡報順序','決選公司']
+    .concat(D.dims.map(function(d){ return d.name + '(上限' + d.max + ')'; }))
+    .concat(['總分','評語']));
+  D.records.slice().sort(function(a,b){
+    return a.judge.localeCompare(b.judge,'zh-Hant') || (Number(a.pid)-Number(b.pid));
+  }).forEach(function(r){
+    lines.push([r.judge, r.pid, teamOf[r.pid]||'']
+      .concat(r.s.map(function(v){ return v==null?'':v; }))
+      .concat([r.total, r.comment||'']));
+  });
+
+  lines.push([]);
+  lines.push(['【排名】名次','簡報順序','決選公司','平均總分']
+    .concat(D.dims.map(function(d){ return d.name + '平均'; }))
+    .concat(['最高','最低','標準差','已評人數']));
+  M.scored.forEach(function(r){
+    lines.push([r.rank, r.id, r.team, f2(r.avg)]
+      .concat(r.dimAvg.map(function(v){ return f2(v); }))
+      .concat([f2(r.max), f2(r.min), f2(r.sd), r.n]));
+  });
+
+  var csv = lines.map(function(row){
+    return row.map(function(c){
+      var s = String(c==null?'':c);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+    }).join(',');
+  }).join('\r\n');
+
+  var blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'GISA菁英選拔_評分結果_' + new Date().toISOString().slice(0,16).replace(/[:T]/g,'') + '.csv';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+}
+
+/* ── 繪製全部 ── */
+var lastM = null;
+function paintAll(){
+  var M = derive();
+  lastM = M;
+  paintLegend();
+  paintKpis(M);
+  paintRank(M);
+  paintMatrix(M);
+  paintDims(M);
+  paintJudges(M);
+  paintCmts(M);
+  $('#subline').textContent =
+    D.projects.length + ' 家決選公司　·　' + D.judges.length + ' 位評審委員';
+}
+
+/* ── 輪詢 ── */
+function setLive(kind, text){
+  $('#dot').className = 'dot' + (kind === 'ok' ? '' : ' ' + kind);
+  $('#liveTxt').textContent = text;
+}
+function pull(force){
+  return jsonp({ action:'admin', key:KEY, since:D.v, force: force ? '1' : '' })
+    .then(function(res){
+      lastOk = Date.now();
+      if (res.changed){
+        D.v = res.v; D.dims = res.dims; D.projects = res.projects;
+        D.judges = res.judges; D.records = res.records;
+        paintAll();
+      } else {
+        D.v = res.v;
+        var t = $('#kpiTime'); if (t) t.textContent = hhmmss(lastOk);
+      }
+      setLive('ok', auto ? '即時連線中' : '已暫停自動更新');
+    })
+    .catch(function(err){
+      setLive('err', '連線異常：' + (err.message||''));
+      throw err;
+    });
+}
+function loop(){
+  clearTimeout(timer);
+  if (!auto) return;
+  timer = setTimeout(function(){
+    pull(false).catch(function(){}).then(loop);
+  }, POLL_MS);
+}
+
+/* ── 分頁切換 ── */
+function showView(v){
+  view = v;
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.setAttribute('aria-selected', String(t.dataset.view === v));
+  });
+  ['rank','matrix','dims','judges','cmts'].forEach(function(k){
+    $('#view-'+k).classList.toggle('hide', k !== v);
+  });
+}
+
+/* ── 事件 ── */
+document.querySelector('.tabs').addEventListener('click', function(e){
+  var t = e.target.closest('.tab');
+  if (t) showView(t.dataset.view);
+});
+$('#btnAuto').addEventListener('click', function(){
+  auto = !auto;
+  this.setAttribute('aria-pressed', String(auto));
+  this.textContent = auto ? '自動更新' : '已暫停';
+  setLive(auto ? 'ok' : 'off', auto ? '即時連線中' : '已暫停自動更新');
+  if (auto) loop(); else clearTimeout(timer);
+});
+$('#btnRefresh').addEventListener('click', function(){
+  setLive('off','更新中…');
+  pull(true).catch(function(){});
+});
+$('#btnTheme').addEventListener('click', function(){
+  var dark = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = dark ? '' : 'dark';
+  document.body.classList.toggle('project', !dark);
+  this.setAttribute('aria-pressed', String(!dark));
+  if (lastM){ paintMatrix(lastM); }
+});
+$('#btnCsv').addEventListener('click', function(){
+  if (lastM) exportCsv(lastM);
+});
+$('#cmtFilter').addEventListener('change', function(){ if (lastM) paintCmts(lastM); });
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden && auto){ pull(false).catch(function(){}); }
+});
+
+/* ── 金鑰閘門 ── */
+function start(){
+  $('#gate').hidden = true;
+  $('#app').hidden = false;
+  setLive('off','連線中…');
+  pull(true)
+    .then(function(){ loop(); })
+    .catch(function(err){
+      if (/金鑰/.test(err.message||'')){
+        localStorage.removeItem(LSK);
+        $('#app').hidden = true;
+        $('#gate').hidden = false;
+        $('#gateErr').textContent = err.message;
+      } else {
+        loop();
+      }
+    });
+}
+$('#keyGo').addEventListener('click', function(){
+  var k = $('#keyInput').value.trim();
+  if (!k){ $('#gateErr').textContent = '請輸入金鑰。'; return; }
+  KEY = k; localStorage.setItem(LSK, k);
+  $('#gateErr').textContent = '';
+  start();
+});
+$('#keyInput').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('#keyGo').click(); });
+
+if (KEY){ localStorage.setItem(LSK, KEY); start(); }
+else { $('#gate').hidden = false; }
+</script>
+</body>
+</html>
