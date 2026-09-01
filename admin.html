@@ -153,6 +153,8 @@ tbody tr:hover .sticky-l{background:var(--surface-2)}
   min-width:62px;
 }
 .cell.na{color:var(--ink-3);font-weight:600;background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--line) 5px,var(--line) 6px)}
+.cell.recused{background:#fff3d6;color:#7a4d00;font-size:12px;font-weight:800}
+:root[data-theme="dark"] .cell.recused{background:#3a2f13;color:#e8c98a}
 .legend{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
 .legend .sw{display:flex;border-radius:4px;overflow:hidden}
 .legend .sw i{width:22px;height:12px;display:block}
@@ -221,15 +223,27 @@ body.project .tabs,body.project .panel-head .r{opacity:.6}
   <div class="kpis" id="kpis"></div>
 
   <div class="tabs" role="tablist">
-    <button class="tab" role="tab" data-view="rank"   aria-selected="true">即時排名</button>
+    <button class="tab" role="tab" data-view="final"  aria-selected="true">最終成績表</button>
+    <button class="tab" role="tab" data-view="rank"   aria-selected="false">即時排名</button>
     <button class="tab" role="tab" data-view="matrix" aria-selected="false">評分矩陣</button>
     <button class="tab" role="tab" data-view="dims"   aria-selected="false">構面分析</button>
     <button class="tab" role="tab" data-view="judges" aria-selected="false">評審進度</button>
     <button class="tab" role="tab" data-view="cmts"   aria-selected="false">評語彙整</button>
   </div>
 
+  <!-- 最終成績表 -->
+  <section class="panel" id="view-final">
+    <div class="panel-head">
+      <h2>最終成績表</h2>
+      <span class="d" id="finalDesc"></span>
+      <div class="r"><span class="d">同分決勝：總分 → 創新＋市場 → 市場 → 創新</span></div>
+    </div>
+    <div id="warnBox"></div>
+    <div class="scroll"><table id="finalTable"></table></div>
+  </section>
+
   <!-- 即時排名 -->
-  <section class="panel" id="view-rank">
+  <section class="panel hide" id="view-rank">
     <div class="panel-head">
       <h2>即時排名</h2>
       <span class="d" id="rankDesc"></span>
@@ -313,8 +327,8 @@ var $ = function(s){ return document.querySelector(s); };
 var LSK = 'gisa2.adminkey';
 var KEY = new URLSearchParams(location.search).get('key') || localStorage.getItem(LSK) || '';
 
-var D = { v:-1, dims:[], projects:[], judges:[], records:[] };
-var auto = true, timer = null, view = 'rank', lastOk = 0;
+var D = { v:-1, dims:[], projects:[], judges:[], records:[], recuse:{}, warnings:[] };
+var auto = true, timer = null, view = 'final', lastOk = 0;
 
 /* ── JSONP ── */
 var seq = 0;
@@ -376,6 +390,18 @@ function heatInk(v){
 }
 
 /* ── 衍生資料 ── */
+/* ── 同分決勝：總分 → 創新＋市場 → 市場 → 創新 ───────────────
+   （主辦單位指定的規則；各項都是「實際評分人數」的平均） */
+function nearly(a, b){ return Math.abs((a||0) - (b||0)) < 1e-9; }
+function dimSum(r){ return (r.dimAvg[0]||0) + (r.dimAvg[1]||0); }   // 產品創新 + 市場需求
+function cmpRank(a, b){
+  if (!nearly(a.avg, b.avg))               return (b.avg||0) - (a.avg||0);
+  if (!nearly(dimSum(a), dimSum(b)))       return dimSum(b) - dimSum(a);
+  if (!nearly(a.dimAvg[1], b.dimAvg[1]))   return (b.dimAvg[1]||0) - (a.dimAvg[1]||0);
+  if (!nearly(a.dimAvg[0], b.dimAvg[0]))   return (b.dimAvg[0]||0) - (a.dimAvg[0]||0);
+  return 0;
+}
+
 function derive(){
   var byPid = {};
   D.projects.forEach(function(p){
@@ -389,10 +415,24 @@ function derive(){
     b.recs.push(r);
   });
 
+  // 每家公司「應評人數」＝ 評審總數 − 對該公司迴避的評審數
+  var recuse = D.recuse || {};
+  function isRecused(judgeName, pid){
+    var arr = recuse[judgeName];
+    return !!(arr && arr.indexOf(pid) >= 0);
+  }
+  function eligibleCount(pid){
+    var n = 0;
+    D.judges.forEach(function(j){ if (!isRecused(j.name, pid)) n++; });
+    return n;
+  }
+
   var rows = D.projects.map(function(p){
     var b = byPid[p.id];
     return {
       id:p.id, team:p.team, n:b.totals.length,
+      eligible: eligibleCount(p.id),
+      // 平均一律用「實際有評分的人數」當分母，迴避者不計入，被迴避的公司才不會被拉低
       avg: b.totals.length ? mean(b.totals) : null,
       min: b.totals.length ? Math.min.apply(null, b.totals) : null,
       max: b.totals.length ? Math.max.apply(null, b.totals) : null,
@@ -401,12 +441,25 @@ function derive(){
     };
   });
 
-  var scored = rows.filter(function(r){ return r.n > 0; })
-                   .sort(function(a,b){ return b.avg - a.avg; });
-  var lv = null, lr = 0;
+  var scored = rows.filter(function(r){ return r.n > 0; }).sort(cmpRank);
+  var lr = 0;
   scored.forEach(function(r,i){
-    if (lv !== null && Math.abs(r.avg - lv) < 1e-9) r.rank = lr;
-    else { r.rank = i+1; lr = r.rank; lv = r.avg; }
+    if (i > 0 && cmpRank(scored[i-1], r) === 0) r.rank = lr;
+    else { r.rank = i+1; lr = r.rank; }
+  });
+  scored.forEach(function(r,i){
+    r.tied = (i > 0 && cmpRank(scored[i-1], r) === 0) ||
+             (i < scored.length-1 && cmpRank(r, scored[i+1]) === 0);
+    // 記錄是靠第幾層決勝勝出，供「最終成績表」說明
+    r.brokeBy = '';
+    if (i > 0){
+      var prev = scored[i-1];
+      if (nearly(prev.avg, r.avg)){
+        if (!nearly(dimSum(prev), dimSum(r))) r.brokeBy = '創新＋市場';
+        else if (!nearly(prev.dimAvg[1], r.dimAvg[1])) r.brokeBy = '市場需求';
+        else if (!nearly(prev.dimAvg[0], r.dimAvg[0])) r.brokeBy = '產品創新';
+      }
+    }
   });
 
   var judgeStats = D.judges.map(function(j){
@@ -419,6 +472,8 @@ function derive(){
       min: totals.length ? Math.min.apply(null,totals) : null,
       max: totals.length ? Math.max.apply(null,totals) : null,
       sd:  stdev(totals),
+      recused: (recuse[j.name] || []),
+      duty: D.projects.length - (recuse[j.name] || []).length,   // 這位評審應評家數
       done: {}, last: mine.length ? Math.max.apply(null, mine.map(function(r){ return r.at||0; })) : 0
     };
   });
@@ -426,12 +481,19 @@ function derive(){
   judgeStats.forEach(function(j){ jmap[j.name] = j; });
   D.records.forEach(function(r){ if (jmap[r.judge]) jmap[r.judge].done[r.pid] = r; });
 
-  return { rows:rows, scored:scored, judges:judgeStats, byPid:byPid };
+  // 全體應評格數（KPI 完成度的分母）
+  var totalCells = 0;
+  D.judges.forEach(function(j){
+    totalCells += D.projects.length - ((recuse[j.name] || []).length);
+  });
+
+  return { rows:rows, scored:scored, judges:judgeStats, byPid:byPid,
+           isRecused:isRecused, totalCells:totalCells };
 }
 
 /* ── KPI ── */
 function paintKpis(M){
-  var cells = D.judges.length * D.projects.length;
+  var cells = M.totalCells;          // 已扣除利益迴避的應評格數
   var filled = D.records.length;
   var confirmed = D.judges.filter(function(j){ return j.confirmed; }).length;
   var lead = M.scored[0];
@@ -497,7 +559,7 @@ function paintRank(M){
       '<td class="num">' + f2(r.max) + '</td>' +
       '<td class="num">' + f2(r.min) + '</td>' +
       '<td class="num" style="color:var(--ink-3)">' + f2(r.sd) + '</td>' +
-      '<td class="num">' + r.n + ' / ' + D.judges.length + '</td>' +
+      '<td class="num">' + r.n + ' / ' + r.eligible + '</td>' +
     '</tr>';
   }).join('');
   var rest = M.rows.filter(function(r){ return r.n === 0; }).map(function(r){
@@ -520,6 +582,9 @@ function paintMatrix(M){
   var body = D.projects.map(function(p){
     var row = M.rows.filter(function(r){ return r.id === p.id; })[0];
     var tds = M.judges.map(function(j){
+      if (M.isRecused(j.name, p.id)){
+        return '<td class="cell recused" title="利益迴避，不需評分">迴避</td>';
+      }
       var rec = j.done[p.id];
       if (!rec) return '<td class="cell na" title="尚未評分">–</td>';
       return '<td class="cell" style="background:' + heatVar(rec.total) + ';color:' + heatInk(rec.total) + '" ' +
@@ -577,12 +642,15 @@ function paintDims(M){
 
 /* ── 評審進度 ── */
 function paintJudges(M){
-  var total = D.projects.length;
+  var teamOf = {};
+  D.projects.forEach(function(p){ teamOf[p.id] = p.team; });
   var head = '<thead><tr><th class="sticky-l" style="min-width:170px">評審</th><th style="min-width:180px">單位</th>' +
     '<th style="min-width:160px">進度</th><th class="num">平均</th><th class="num">最高</th><th class="num">最低</th>' +
-    '<th class="num">全距</th><th class="num">標準差</th><th>最後送出</th><th>最終確認</th></tr></thead>';
+    '<th class="num">全距</th><th class="num">標準差</th><th style="min-width:180px">利益迴避</th>' +
+    '<th>最後送出</th><th>最終確認</th></tr></thead>';
 
   var body = M.judges.map(function(j){
+    var total = j.duty;                       // 該評審應評家數（已扣除迴避）
     var pct = total ? Math.round(j.n/total*100) : 0;
     return '<tr>' +
       '<td class="sticky-l" style="font-weight:800">' + esc(j.name) + '</td>' +
@@ -595,6 +663,10 @@ function paintJudges(M){
       '<td class="num">' + (j.min!=null?f2(j.min):'—') + '</td>' +
       '<td class="num">' + (j.max!=null?f2(j.max-j.min):'—') + '</td>' +
       '<td class="num" style="color:var(--ink-3)">' + f2(j.sd) + '</td>' +
+      '<td style="white-space:normal;font-size:12.5px;color:#7a4d00">' +
+        (j.recused.length
+          ? j.recused.map(function(pid){ return esc(teamOf[pid] || pid); }).join('、')
+          : '<span style="color:var(--ink-3)">—</span>') + '</td>' +
       '<td style="color:var(--ink-3);font-size:12.5px">' + (j.last?hhmmss(j.last):'—') + '</td>' +
       '<td>' + (j.confirmed
         ? '<span class="pill ok">已確認 ' + (j.confirmedAt?hhmmss(j.confirmedAt):'') + '</span>'
@@ -605,7 +677,9 @@ function paintJudges(M){
 
   var pend = [];
   M.judges.forEach(function(j){
-    var miss = D.projects.filter(function(p){ return !j.done[p.id]; });
+    var miss = D.projects.filter(function(p){
+      return !j.done[p.id] && !M.isRecused(j.name, p.id);   // 迴避的不算待補
+    });
     if (miss.length) pend.push({ j:j, miss:miss });
   });
   $('#pendDesc').textContent = pend.length
@@ -660,6 +734,55 @@ function paintCmts(M){
     : '<div class="empty">目前沒有符合條件的評語。</div>';
 }
 
+/* ── 最終成績表 ── */
+function paintFinal(M){
+  // 迴避名單有對不到的名稱時提醒主辦單位，避免設定靜默失效
+  var warns = D.warnings || [];
+  $('#warnBox').innerHTML = warns.length
+    ? '<div style="margin:14px 20px;padding:12px 15px;border-radius:10px;background:#fff3d6;' +
+      'border:1px solid #e8c98a;color:#7a4d00;font-size:13px;font-weight:700">' +
+      '迴避名單有問題，請檢查：<br>' + warns.map(esc).join('<br>') + '</div>'
+    : '';
+
+  var doneAll = M.rows.every(function(r){ return r.n >= r.eligible; });
+  $('#finalDesc').textContent = doneAll
+    ? '全部公司皆已評分完成，本表即為最終結果'
+    : '尚有公司未評分完，數字會隨評審送出即時變動';
+
+  var head = '<thead><tr>' +
+    '<th class="sticky-l" style="width:70px">名次</th><th style="width:60px">順序</th><th>決選公司</th>' +
+    D.dims.map(function(d){
+      return '<th class="num" style="min-width:92px">' + esc(d.name) + '<br><span style="font-weight:600">上限 ' + d.max + '</span></th>';
+    }).join('') +
+    '<th class="num" style="width:92px">總分平均</th>' +
+    '<th class="num" style="width:88px">已評人數</th>' +
+    '<th style="min-width:130px">備註</th></tr></thead>';
+
+  var body = M.scored.map(function(r){
+    return '<tr>' +
+      '<td class="sticky-l"><span class="rk' + (r.rank<=3 ? ' g'+r.rank : '') + '">' + r.rank + '</span></td>' +
+      '<td class="num">' + esc(r.id) + '</td>' +
+      '<td class="co">' + esc(r.team) + '</td>' +
+      r.dimAvg.map(function(v){ return '<td class="num">' + f2(v) + '</td>'; }).join('') +
+      '<td class="num" style="font-weight:800;font-size:15px">' + f2(r.avg) + '</td>' +
+      '<td class="num' + (r.n < r.eligible ? '" style="color:var(--critical);font-weight:700' : '') + '">' +
+        r.n + ' / ' + r.eligible + '</td>' +
+      '<td style="font-size:12.5px;color:var(--ink-3);white-space:normal">' +
+        (r.brokeBy ? '同總分，以「' + esc(r.brokeBy) + '」勝出' : (r.tied ? '完全同分，並列' : '')) +
+        (r.eligible < D.judges.length ? (r.brokeBy||r.tied ? '；' : '') + '有評審迴避' : '') +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  var rest = M.rows.filter(function(r){ return r.n === 0; }).map(function(r){
+    return '<tr><td class="sticky-l">—</td><td class="num">' + esc(r.id) + '</td>' +
+      '<td class="co">' + esc(r.team) + '</td>' +
+      '<td colspan="' + (D.dims.length + 3) + '" style="color:var(--ink-3)">尚無評分</td></tr>';
+  }).join('');
+
+  $('#finalTable').innerHTML = head + '<tbody>' + body + rest + '</tbody>';
+}
+
 /* ── 匯出 CSV ── */
 /**
  * 匯出 CSV。排版就是主辦單位會直接拿去用的兩張表：
@@ -681,28 +804,43 @@ function exportCsv(M){
   lines.push(['匯出時間', new Date().toLocaleString('zh-TW')]);
   lines.push([]);
 
-  /* ── 表一：成績總表 ── */
-  lines.push(['一、成績總表（依平均分數排名）']);
+  /* ── 表一：最終成績表（各構面平均 + 名次） ── */
+  lines.push(['一、最終成績表（同分決勝：總分 → 創新＋市場 → 市場 → 創新）']);
   lines.push(['名次', '簡報順序', '決選公司']
-    .concat(D.judges.map(function(j){ return j.name; }))
-    .concat(['平均分數', '已評人數']));
+    .concat(D.dims.map(function(d){ return d.name + '平均（上限' + d.max + '）'; }))
+    .concat(['總分平均', '已評人數', '備註']));
 
   var ordered = M.scored.concat(M.rows.filter(function(r){ return r.n === 0; }));
   ordered.forEach(function(r){
+    var note = r.brokeBy ? '同總分，以「' + r.brokeBy + '」勝出' : (r.tied ? '完全同分，並列' : '');
+    if (r.eligible < D.judges.length) note += (note ? '；' : '') + '有評審迴避';
+    lines.push([r.n ? r.rank : '', r.id, r.team]
+      .concat(r.dimAvg.map(function(v){ return r.n ? f2(v) : ''; }))
+      .concat([r.n ? f2(r.avg) : '', r.n + ' / ' + r.eligible, note]));
+  });
+
+  lines.push([]);
+  lines.push([]);
+
+  /* ── 表二：各評審給分總表 ── */
+  lines.push(['二、各評審給分總表']);
+  lines.push(['名次', '簡報順序', '決選公司']
+    .concat(D.judges.map(function(j){ return j.name; }))
+    .concat(['總分平均']));
+  ordered.forEach(function(r){
     var cells = D.judges.map(function(j){
+      if (M.isRecused(j.name, r.id)) return '迴避';
       var rec = by[j.name] && by[j.name][r.id];
       return rec ? f2(rec.total) : '';
     });
-    lines.push([r.n ? r.rank : '', r.id, r.team]
-      .concat(cells)
-      .concat([r.n ? f2(r.avg) : '', r.n + ' / ' + D.judges.length]));
+    lines.push([r.n ? r.rank : '', r.id, r.team].concat(cells).concat([r.n ? f2(r.avg) : '']));
   });
 
   lines.push([]);
   lines.push([]);
 
   /* ── 表二：評分明細 ── */
-  lines.push(['二、評分明細（含各構面分數與委員意見）']);
+  lines.push(['三、評分明細（含各構面分數與委員意見）']);
   lines.push(['評審', '簡報順序', '決選公司']
     .concat(D.dims.map(function(d){ return d.name + '（上限' + d.max + '）'; }))
     .concat(['總分', '委員意見']));
@@ -742,6 +880,7 @@ function paintAll(){
   lastM = M;
   paintLegend();
   paintKpis(M);
+  paintFinal(M);
   paintRank(M);
   paintMatrix(M);
   paintDims(M);
@@ -763,6 +902,7 @@ function pull(force){
       if (res.changed){
         D.v = res.v; D.dims = res.dims; D.projects = res.projects;
         D.judges = res.judges; D.records = res.records;
+        D.recuse = res.recuse || {}; D.warnings = res.warnings || [];
         paintAll();
       } else {
         D.v = res.v;
@@ -789,7 +929,7 @@ function showView(v){
   document.querySelectorAll('.tab').forEach(function(t){
     t.setAttribute('aria-selected', String(t.dataset.view === v));
   });
-  ['rank','matrix','dims','judges','cmts'].forEach(function(k){
+  ['final','rank','matrix','dims','judges','cmts'].forEach(function(k){
     $('#view-'+k).classList.toggle('hide', k !== v);
   });
 }

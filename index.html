@@ -186,6 +186,13 @@ button{cursor:pointer;border:none;background:none}
 .co .st{flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:var(--line-strong)}
 .co[data-state="saved"] .st{background:var(--ok)}
 .co[data-state="draft"] .st{background:var(--warn)}
+.co[data-state="recused"]{opacity:.55;cursor:not-allowed;background:#eef0f4;border-style:dashed}
+.co[data-state="recused"]:hover{background:#eef0f4;border-color:var(--line)}
+.co[data-state="recused"] .st{background:transparent}
+.co .rec{
+  flex:0 0 auto;font-size:11px;font-weight:800;color:#7a4d00;
+  background:#fff3d6;border:1px solid #e8c98a;border-radius:6px;padding:1px 6px;
+}
 .co[aria-current="true"]{
   background:linear-gradient(135deg,var(--navy-800),var(--navy-700));border-color:var(--navy-800);
   box-shadow:0 6px 18px rgba(11,43,87,.32);
@@ -214,6 +221,13 @@ button{cursor:pointer;border:none;background:none}
 .nav-btns button:disabled{opacity:.38;cursor:not-allowed}
 
 /* ── 構面卡 ── */
+.hide{display:none!important}
+.recuse-note{
+  margin:16px 20px 4px;padding:22px 24px;border-radius:var(--r-md);
+  background:#fff8e8;border:1.5px solid #e8c98a;
+}
+.recuse-note h3{margin:0 0 8px;font-size:17px;font-weight:800;color:#7a4d00}
+.recuse-note p{margin:0;font-size:14.5px;line-height:1.8;color:#6b4a12}
 .dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;padding:16px 20px 4px}
 .dim{
   border:1px solid var(--line);border-radius:var(--r-md);
@@ -508,6 +522,12 @@ table.grid tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+    <div class="recuse-note" id="recuseNote" hidden>
+      <h3>利益迴避 — 本公司不需評分</h3>
+      <p>依主辦單位設定，您與這家公司具利益關係，因此本公司不列入您的評分範圍。<br>
+         您的評分進度與最終確認都已自動扣除這家公司，請直接評選其他公司即可。</p>
+    </div>
+
     <div class="dims" id="dims"></div>
 
     <div class="cmt">
@@ -639,10 +659,10 @@ var BANNER_URL = '';
 /* ═══════════════════════ 常數 ═══════════════════════ */
 var DIMS = [
   { key:'I', name:'產品創新與行銷', max:30, idx:'一' },
-  { key:'M', name:'市場需求與規模', max:30, idx:'二' },
+  { key:'M', name:'市場需求與規模', max:35, idx:'二' },
   { key:'T', name:'技術門檻',       max:20, idx:'三' },
   { key:'E', name:'經營團隊',       max:10, idx:'四' },
-  { key:'F', name:'財務狀況',       max:10, idx:'五' }
+  { key:'F', name:'財務狀況',       max:5,  idx:'五' }
 ];
 var MAX_TOTAL = DIMS.reduce(function(s,d){ return s + d.max; }, 0);
 var LS = 'gisa2.';
@@ -653,6 +673,7 @@ var JUDGE = (new URLSearchParams(location.search).get('judge') || '').trim();
 var state = {
   ready:false, locked:false, confirmedAt:0, org:'',
   projects:[],          // [{id, team}]
+  excluded:{},          // pid -> true（利益迴避，不需評分）
   saved:{},             // pid -> {scores, total, comment, at}
   drafts:{},            // pid -> {scores, comment}
   current:null,         // pid
@@ -874,7 +895,15 @@ function updateTotal(){
 }
 
 /* ═══════════════════════ 畫面：公司軌 ═══════════════════════ */
+function isRecused(pid){ return !!state.excluded[pid]; }
+
+/** 該評審實際應評的公司（已扣除利益迴避）。 */
+function eligibleProjects(){
+  return state.projects.filter(function(p){ return !isRecused(p.id); });
+}
+
 function projectState(pid){
+  if (isRecused(pid)) return 'recused';
   var saved = state.saved[pid];
   var draft = state.drafts[pid];
   if (draft && !isEmptyDraft(draft) && !matchesSaved(pid, draft)) return 'draft';
@@ -895,16 +924,18 @@ function matchesSaved(pid, draft){
 
 function buildRail(){
   $('#rail').innerHTML = state.projects.map(function(p){
+    var rec = isRecused(p.id);
     return '<button class="co" type="button" role="tab" data-pid="'+p.id+'" ' +
-             'title="'+esc(p.team)+'">' +
+             (rec ? 'disabled aria-disabled="true" title="利益迴避，不需評分" ' : 'title="'+esc(p.team)+'" ') +
+             '>' +
              '<span class="n">'+esc(p.id)+'</span>' +
              '<span class="nm">'+esc(p.team)+'</span>' +
-             '<span class="st"></span>' +
+             (rec ? '<span class="rec">迴避</span>' : '<span class="st"></span>') +
            '</button>';
   }).join('');
   $('#rail').addEventListener('click', function(e){
     var b = e.target.closest('[data-pid]');
-    if (b) selectProject(b.dataset.pid, true);
+    if (b && !b.disabled) selectProject(b.dataset.pid, true);
   });
 }
 function paintRail(){
@@ -915,16 +946,17 @@ function paintRail(){
     el.setAttribute('aria-current', p.id === state.current ? 'true' : 'false');
   });
   var done = countDone();
-  var total = state.projects.length;
+  var total = eligibleProjects().length;      // 分母扣除利益迴避
   var bar = $('#ringBar');
   var C = 2 * Math.PI * Number(bar.getAttribute('r'));   // 半徑改了也不用改這裡
   bar.setAttribute('stroke-dasharray', (total ? done/total*C : 0) + ' ' + C);
   $('#ringTxt').textContent = done + '/' + total;
   $('#btnFinal').disabled = state.locked || total === 0;
 }
+/** 已完成家數：只計應評的公司，迴避的不算。 */
 function countDone(){
   var n = 0;
-  state.projects.forEach(function(p){ if (state.saved[p.id]) n++; });
+  eligibleProjects().forEach(function(p){ if (state.saved[p.id]) n++; });
   return n;
 }
 function esc(s){
@@ -954,11 +986,22 @@ function selectProject(pid, scroll){
   $('#nowName').classList.remove('skel');
   $('#nowName').textContent = p.team;
 
+  var recused = isRecused(pid);
+  $('#dims').classList.toggle('hide', recused);
+  $('#recuseNote').hidden = !recused;
+  var cmtBox = document.querySelector('.cmt');
+  if (cmtBox) cmtBox.classList.toggle('hide', recused);
+
   var saved = state.saved[pid];
-  var meta = saved
-    ? '已於 ' + fmtTime(saved.at) + ' 送出，總分 ' + fmt2(saved.total) + ' 分'
-    : '尚未送出評分';
-  if (projectState(pid) === 'draft') meta += '　·　有未送出的變更（已暫存於本機）';
+  var meta;
+  if (recused){
+    meta = '本公司已列為您的利益迴避對象，不需評分。';
+  } else {
+    meta = saved
+      ? '已於 ' + fmtTime(saved.at) + ' 送出，總分 ' + fmt2(saved.total) + ' 分'
+      : '尚未送出評分';
+    if (projectState(pid) === 'draft') meta += '　·　有未送出的變更（已暫存於本機）';
+  }
   $('#nowMeta').textContent = meta;
 
   DIMS.forEach(function(d){
@@ -969,6 +1012,7 @@ function selectProject(pid, scroll){
   $('#comment').value = draft.comment || '';
   updateCmtCount();
   updateTotal();
+  $('#btnSave').disabled = state.locked || recused;
   paintRail();
   paintList();
   syncNav();
@@ -979,18 +1023,29 @@ function selectProject(pid, scroll){
   }
 }
 function syncNav(){
-  var i = indexOfCurrent();
-  $('#btnPrev').disabled = (i <= 0);
-  $('#btnNext').disabled = (i < 0 || i >= state.projects.length - 1);
+  $('#btnPrev').disabled = !neighbourPid(-1);
+  $('#btnNext').disabled = !neighbourPid(1);
 }
 function indexOfCurrent(){
   for (var i=0;i<state.projects.length;i++){ if (state.projects[i].id === state.current) return i; }
   return -1;
 }
+/**
+ * 往前／往後找「下一家應評的公司」，自動略過利益迴避的公司。
+ * 找不到就回傳 null（代表已經到頭了）。
+ */
+function neighbourPid(delta){
+  var i = indexOfCurrent();
+  if (i < 0) return null;
+  for (var k = i + delta; k >= 0 && k < state.projects.length; k += delta){
+    if (!isRecused(state.projects[k].id)) return state.projects[k].id;
+  }
+  return null;
+}
 function step(delta){
-  var i = indexOfCurrent() + delta;
-  if (i >= 0 && i < state.projects.length){
-    selectProject(state.projects[i].id, true);
+  var pid = neighbourPid(delta);
+  if (pid){
+    selectProject(pid, true);
     window.scrollTo({ top:0, behavior:'smooth' });
   }
 }
@@ -1004,28 +1059,51 @@ function updateCmtCount(){
 }
 
 /* ═══════════════════════ 排名計算 ═══════════════════════ */
+/**
+ * 同分決勝（主辦單位指定的規則），依序比較，前一項相同才看下一項：
+ *   1. 總分
+ *   2. 產品創新 + 市場需求
+ *   3. 市場需求
+ *   4. 產品創新
+ * 回傳排序用的比較值陣列（由大到小排）。
+ */
+function tieBreakKeys(scores, total){
+  var I = Number((scores && scores.I) || 0);
+  var M = Number((scores && scores.M) || 0);
+  return [Number(total) || 0, I + M, M, I];
+}
+function compareByRule(a, b){
+  var ka = tieBreakKeys(a.scores, a.total), kb = tieBreakKeys(b.scores, b.total);
+  for (var i = 0; i < ka.length; i++){
+    if (kb[i] !== ka[i]) return kb[i] - ka[i];   // 由高到低
+  }
+  return 0;
+}
+
 function rankedList(){
   var rows = state.projects.map(function(p){
     var s = state.saved[p.id];
     return {
       id:p.id, team:p.team,
+      recused: isRecused(p.id),
       total: s ? s.total : null,
       scores: s ? s.scores : null,
       comment: s ? s.comment : '',
       at: s ? s.at : 0
     };
   });
-  var scored = rows.filter(function(r){ return r.total != null; })
-                   .sort(function(a,b){ return b.total - a.total; });
-  var lastVal = null, lastRank = 0;
+  var scored = rows.filter(function(r){ return !r.recused && r.total != null; })
+                   .sort(compareByRule);
+  var lastRank = 0;
   scored.forEach(function(r, i){
-    if (lastVal !== null && r.total === lastVal) r.rank = lastRank;
-    else { r.rank = i + 1; lastRank = r.rank; lastVal = r.total; }
+    if (i > 0 && compareByRule(scored[i-1], r) === 0) r.rank = lastRank;
+    else { r.rank = i + 1; lastRank = r.rank; }
   });
-  // 標記同分
-  var counts = {};
-  scored.forEach(function(r){ counts[r.total] = (counts[r.total]||0) + 1; });
-  scored.forEach(function(r){ r.tied = counts[r.total] > 1; });
+  // 只有四層全部相同才算真正並列
+  scored.forEach(function(r, i){
+    r.tied = (i > 0 && compareByRule(scored[i-1], r) === 0) ||
+             (i < scored.length-1 && compareByRule(r, scored[i+1]) === 0);
+  });
   return { all: rows, scored: scored };
 }
 
@@ -1049,12 +1127,19 @@ function listHtml(){
     '</tr>';
   }).join('');
 
-  var missing = data.all.filter(function(r){ return r.total == null; });
+  var missing = data.all.filter(function(r){ return !r.recused && r.total == null; });
+  var recused = data.all.filter(function(r){ return r.recused; });
   var missingRow = missing.length
     ? '<tr><td colspan="7" style="color:var(--ink-3);font-size:13px;background:var(--surface-2)">' +
       '尚未評分：' + missing.map(function(m){ return esc(m.id + '｜' + m.team); }).join('、') +
       '</td></tr>'
     : '';
+  if (recused.length){
+    missingRow += '<tr><td colspan="7" style="color:#7a4d00;font-size:13px;background:#fff8e8">' +
+      '利益迴避（不需評分、不計分）：' +
+      recused.map(function(m){ return esc(m.id + '｜' + m.team); }).join('、') +
+      '</td></tr>';
+  }
 
   return '<table class="grid"><thead><tr>' +
       '<th>順序</th><th>決選公司</th><th>構面分布</th>' +
@@ -1083,7 +1168,7 @@ function paintList(){
 
 function renderListModal(){
   var data = rankedList();
-  var done = data.scored.length, total = state.projects.length;
+  var done = data.scored.length, total = eligibleProjects().length;
   var strip = $('#listStatus');
   strip.className = 'status-strip ' + (done >= total && total ? 'good' : 'bad');
   strip.innerHTML = (done >= total && total)
@@ -1161,8 +1246,8 @@ function doSave(){
       if (countDone() >= state.projects.length && !state.locked){
         setTimeout(function(){ openFinal(); }, 500);
       } else {
-        var i = indexOfCurrent();
-        if (i >= 0 && i < state.projects.length - 1 && !state.saved[state.projects[i+1].id]){
+        var nextPid = neighbourPid(1);
+        if (nextPid && !state.saved[nextPid]){
           setTimeout(function(){ step(1); }, 450);
         }
       }
@@ -1206,7 +1291,7 @@ function hideNet(){ $('#netbar').className = 'netbar'; }
 /* ═══════════════════════ 最終確認 ═══════════════════════ */
 function openFinal(){
   var data = rankedList();
-  var done = data.scored.length, total = state.projects.length;
+  var done = data.scored.length, total = eligibleProjects().length;
   var complete = done >= total && total > 0;
 
   $('#finalStatus').className = 'status-strip ' + (complete ? 'good' : 'bad');
@@ -1219,9 +1304,9 @@ function openFinal(){
   var tn = $('#tieNote');
   if (ties.length){
     tn.style.display = '';
-    tn.innerHTML = '提醒：有 ' + ties.length + ' 家公司總分相同（' +
+    tn.innerHTML = '提醒：有 ' + ties.length + ' 家公司在總分、創新＋市場、市場、創新四項都完全相同（' +
       ties.map(function(t){ return esc(t.team) + ' ' + fmt2(t.total); }).join('、') +
-      '），並列相同名次。若希望分出高下，請於送出前調整分數。';
+      '），因此並列相同名次。若希望分出高下，請於送出前調整分數。';
   } else {
     tn.style.display = 'none';
   }
@@ -1236,12 +1321,18 @@ function openFinal(){
       '<td style="color:var(--ink-3);font-size:12.5px">' + fmtTime(r.at) + '</td>' +
       '<td><button class="link-btn" data-fix="' + esc(r.id) + '" type="button">修改</button></td>' +
     '</tr>';
-  }).join('') + data.all.filter(function(r){ return r.total == null; }).map(function(r){
+  }).join('') + data.all.filter(function(r){ return !r.recused && r.total == null; }).map(function(r){
     return '<tr style="background:#fdf6f6">' +
       '<td class="num">' + esc(r.id) + '</td>' +
       '<td class="co-name">' + esc(r.team) + '</td>' +
       '<td colspan="3" style="color:var(--danger);font-weight:700">尚未評分</td>' +
       '<td><button class="link-btn" data-fix="' + esc(r.id) + '" type="button">前往評分</button></td>' +
+    '</tr>';
+  }).join('') + data.all.filter(function(r){ return r.recused; }).map(function(r){
+    return '<tr style="background:#fff8e8">' +
+      '<td class="num">' + esc(r.id) + '</td>' +
+      '<td class="co-name">' + esc(r.team) + '</td>' +
+      '<td colspan="4" style="color:#7a4d00;font-weight:700">利益迴避（不需評分、不計分）</td>' +
     '</tr>';
   }).join('');
 
@@ -1306,8 +1397,9 @@ function applyLock(){
   });
   document.querySelectorAll('.stepper').forEach(function(b){ b.disabled = lock; });
   $('#comment').disabled = lock;
-  $('#btnSave').disabled = lock;
-  $('#btnFinal').disabled = lock || state.projects.length === 0;
+  // 迴避中的公司即使沒鎖定也不能送出
+  $('#btnSave').disabled = lock || isRecused(state.current);
+  $('#btnFinal').disabled = lock || eligibleProjects().length === 0;
 
   if (lock){
     showDone();
@@ -1321,7 +1413,8 @@ function applyLock(){
 function cacheBoot(){
   lsSet(bootKey(), {
     org: state.org, locked: state.locked, confirmedAt: state.confirmedAt,
-    projects: state.projects, saved: state.saved, at: Date.now()
+    projects: state.projects, saved: state.saved,
+    excluded: Object.keys(state.excluded), at: Date.now()
   });
 }
 
@@ -1330,6 +1423,8 @@ function applyBoot(b, fromCache){
   state.locked = !!b.locked;
   state.confirmedAt = b.confirmedAt || 0;
   state.projects = b.projects || [];
+  state.excluded = {};
+  (b.excluded || []).forEach(function(pid){ state.excluded[String(pid)] = true; });
   state.saved = {};
   var mine = b.mine || b.saved || {};
   Object.keys(mine).forEach(function(pid){
@@ -1344,10 +1439,11 @@ function applyBoot(b, fromCache){
   loadDrafts();
 
   var target = state.current;
-  if (!target || !state.projects.some(function(p){ return p.id === target; })){
-    // 預設跳到第一家尚未評分的公司
-    var next = state.projects.filter(function(p){ return !state.saved[p.id]; })[0];
-    target = (next || state.projects[0] || {}).id;
+  if (!target || !state.projects.some(function(p){ return p.id === target; }) || isRecused(target)){
+    // 預設跳到第一家「應評且尚未評分」的公司（跳過利益迴避）
+    var elig = eligibleProjects();
+    var next = elig.filter(function(p){ return !state.saved[p.id]; })[0];
+    target = (next || elig[0] || {}).id;
   }
   if (target) selectProject(target, true);
   paintRail(); paintList();
@@ -1388,7 +1484,7 @@ function boot(){
   if (cached && cached.projects && cached.projects.length){
     applyBoot({
       org: cached.org, locked: cached.locked, confirmedAt: cached.confirmedAt,
-      projects: cached.projects, mine: cached.saved
+      projects: cached.projects, mine: cached.saved, excluded: cached.excluded || []
     }, true);
     toast('顯示本機快取，正在與伺服器同步…', 'info');
   }

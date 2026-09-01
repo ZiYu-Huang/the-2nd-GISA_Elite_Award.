@@ -31,16 +31,17 @@ var SHEETS = {
   JUDGES:    '評審名單',
   SCORES:    '評分明細',
   CONFIRM:   '最終確認',
+  RECUSE:    '迴避名單',
   CONFIG:    '設定'
 };
 
 /** 五大構面。key 為前端欄位代號，順序即為試算表欄位順序。 */
 var DIMS = [
   { key: 'I', name: '產品創新與行銷', max: 30 },
-  { key: 'M', name: '市場需求與規模', max: 30 },
+  { key: 'M', name: '市場需求與規模', max: 35 },
   { key: 'T', name: '技術門檻',       max: 20 },
   { key: 'E', name: '經營團隊',       max: 10 },
-  { key: 'F', name: '財務狀況',       max: 10 }
+  { key: 'F', name: '財務狀況',       max: 5  }
 ];
 
 var SCORE_HEADERS = ['時間戳記', '評審', '簡報順序', '決選公司']
@@ -59,18 +60,27 @@ var SCORE_WIDTH = SCORE_HEADERS.length; // 13
 
 var CONFIRM_HEADERS = ['時間戳記', '評審', '已評公司數', '公司總數', '是否全數評完', '明細(JSON)', '確認時間'];
 
+var RECUSE_HEADERS = ['評審', '決選公司', '備註'];
+
+/** 本屆已知的利益迴避（評審, 公司, 備註）。只在第一次建立工作表時寫入。 */
+var RECUSE_2026 = [
+  ['汪庭安執行秘書', '股感媒體科技股份有限公司', ''],
+  ['汪庭安執行秘書', '峻魁智慧股份有限公司',   ''],
+  ['汪庭安執行秘書', '鉅怡智慧股份有限公司',   '暫定，如確認可評選再刪除此列']
+];
+
 /** 今年度參賽公司（依簡報順序） */
 var COMPANIES_2026 = [
-  '鉅怡智慧股份有限公司',
-  '峻魁智慧股份有限公司',
-  '股感媒體科技股份有限公司',
-  '滙嘉健康生活科技股份有限公司',
-  '星益欣數位服務股份有限公司',
   '台灣居護股份有限公司',
-  '騰雲運算股份有限公司',
   '夯客股份有限公司',
+  '成心科技股份有限公司',
+  '股感媒體科技股份有限公司',
+  '星益欣數位服務股份有限公司',
+  '峻魁智慧股份有限公司',
+  '滙嘉健康生活科技股份有限公司',
+  '鉅怡智慧股份有限公司',
   '蒙恩聽障烘焙坊股份有限公司',
-  '成心科技股份有限公司'
+  '騰雲運算股份有限公司'
 ];
 
 /** 今年度評審委員（單位, 姓名職稱） */
@@ -81,7 +91,7 @@ var JUDGES_2026 = [
   ['意德士科技(股)公司',               '闕聖哲董事長'],
   ['中天生物科技(股)公司',             '陳振文董事長'],
   ['普萊德科技(股)公司',               '陳清港董事長'],
-  ['SparkLabs Taiwan 新創加速器暨創投基金', '邱彥錡共同創辦人暨管理合夥人'],
+  ['SparkLabs Taiwan 新創加速器暨創投基金', '邱彥錡創始管理合夥人'],
   ['（測試用，正式活動可刪除）',        '測試評審']
 ];
 
@@ -138,10 +148,11 @@ function setupSheets() {
   var sc = book.getSheetByName(SHEETS.SCORES);
   if (!sc) {
     sc = book.insertSheet(SHEETS.SCORES);
-    sc.getRange(1, 1, 1, SCORE_WIDTH).setValues([SCORE_HEADERS]);
     sc.setFrozenRows(1);
-    sc.getRange(1, 1, 1, SCORE_WIDTH).setFontWeight('bold');
   }
+  // 表頭每次都重寫：構面上限（例如 30 改成 35）調整後，標題才會跟著更新。
+  // 只動第 1 列，不會碰到任何評分資料。
+  sc.getRange(1, 1, 1, SCORE_WIDTH).setValues([SCORE_HEADERS]).setFontWeight('bold');
 
   // 4) 最終確認
   var cf = book.getSheetByName(SHEETS.CONFIRM);
@@ -150,6 +161,24 @@ function setupSheets() {
     cf.getRange(1, 1, 1, CONFIRM_HEADERS.length).setValues([CONFIRM_HEADERS]);
     cf.setFrozenRows(1);
     cf.getRange(1, 1, 1, CONFIRM_HEADERS.length).setFontWeight('bold');
+  }
+
+  // 4.5) 迴避名單（利益迴避：某評審不評某公司）
+  var rc = book.getSheetByName(SHEETS.RECUSE);
+  var rcIsNew = !rc;
+  if (!rc) {
+    rc = book.insertSheet(SHEETS.RECUSE);
+    rc.setFrozenRows(1);
+    if (RECUSE_2026.length) {
+      rc.getRange(2, 1, RECUSE_2026.length, RECUSE_HEADERS.length).setValues(RECUSE_2026);
+    }
+  }
+  rc.getRange(1, 1, 1, RECUSE_HEADERS.length).setValues([RECUSE_HEADERS]).setFontWeight('bold');
+  applyRecuseValidation(rc);
+  if (rcIsNew) {
+    rc.setColumnWidth(1, 220);
+    rc.setColumnWidth(2, 300);
+    rc.setColumnWidth(3, 320);
   }
 
   // 5) 後台金鑰
@@ -196,12 +225,34 @@ function setupSheets() {
 
   Logger.log('安裝完成。後台金鑰 ADMIN_KEY = %s', key);
   uiAlert('安裝完成',
-    '已建立 5 個工作表，並寫入 ' + COMPANIES_2026.length + ' 家公司與 ' +
+    '已建立 6 個工作表，並寫入 ' + COMPANIES_2026.length + ' 家公司與 ' +
     JUDGES_2026.length + ' 位評審。\n\n' +
     '後台金鑰（ADMIN_KEY）：\n' + key + '\n\n' +
     '這組金鑰也寫在「設定」工作表的 B2（已移到第一個分頁）。\n' +
     '請重新整理試算表頁面，上方會出現「GISA 評分系統」選單。');
   return key;
+}
+
+/**
+ * 幫「迴避名單」的評審／公司欄掛上下拉選單，直接指向兩份主名單。
+ * 這樣主辦單位只能從既有名單挑，不可能打錯字造成迴避靜默失效。
+ */
+function applyRecuseValidation(rc) {
+  try {
+    var book = ss();
+    var js = book.getSheetByName(SHEETS.JUDGES);
+    var cs = book.getSheetByName(SHEETS.COMPANIES);
+    if (!js || !cs) return;
+    var LAST = 200;
+
+    var judgeRule = SpreadsheetApp.newDataValidation()
+      .requireValueInRange(js.getRange('B2:B'), true).setAllowInvalid(false).build();
+    rc.getRange(2, 1, LAST - 1, 1).setDataValidation(judgeRule);
+
+    var coRule = SpreadsheetApp.newDataValidation()
+      .requireValueInRange(cs.getRange('B2:B'), true).setAllowInvalid(false).build();
+    rc.getRange(2, 2, LAST - 1, 1).setDataValidation(coRule);
+  } catch (ignore) {}
 }
 
 /** 試算表開啟時建立操作選單，之後不必再進 Apps Script 編輯器。 */
@@ -213,6 +264,7 @@ function onOpen() {
       .addItem('設定 GitHub Pages 網址', 'promptBaseUrl')
       .addSeparator()
       .addItem('重新整理名單快取', 'clearCachesUi')
+      .addItem('修復迴避名單下拉選單', 'fixRecuseValidationUi')
       .addItem('重新執行安裝（可重複執行）', 'setupSheets')
       .addSeparator()
       .addItem('解除某位評審的最終確認', 'promptUnlockJudge')
@@ -302,7 +354,16 @@ function clearCaches() {
 }
 function clearCachesUi() {
   clearCaches();
-  uiAlert('已重新整理', '公司名單與評審名單的快取已清除，變更立即生效。');
+  uiAlert('已重新整理', '公司名單、評審名單與迴避名單的快取已清除，變更立即生效。');
+}
+
+/** 名單增減後，重新掛一次「迴避名單」的下拉選單範圍。 */
+function fixRecuseValidationUi() {
+  var rc = ss().getSheetByName(SHEETS.RECUSE);
+  if (!rc) { uiAlert('找不到工作表', '請先執行選單的「重新執行安裝」建立「迴避名單」。'); return; }
+  applyRecuseValidation(rc);
+  clearCaches();
+  uiAlert('已修復', '「迴避名單」的評審／公司下拉選單已重新掛上最新名單。');
 }
 
 /**
@@ -471,9 +532,51 @@ function getLists() {
     judges.push({ org: org, name: name });
   }
 
-  var lists = { projects: projects, judges: judges };
+  // 迴避名單：{ 評審姓名: [簡報順序, ...] }。用公司「名稱」比對再轉成簡報順序，
+  // 因為簡報順序會被重新排過，名稱才是穩定的識別。
+  var recuse = {};
+  var warnings = [];
+  var rcSheet = ss().getSheetByName(SHEETS.RECUSE);
+  if (rcSheet && rcSheet.getLastRow() > 1) {
+    var judgeNames = {};
+    judges.forEach(function (j) { judgeNames[j.name] = true; });
+    var pidOfTeam = {};
+    projects.forEach(function (pr) { pidOfTeam[pr.team] = pr.id; });
+
+    var rv = rcSheet.getRange(2, 1, rcSheet.getLastRow() - 1, 2).getValues();
+    for (var r = 0; r < rv.length; r++) {
+      var jn = String(rv[r][0] || '').trim();
+      var cn = String(rv[r][1] || '').trim();
+      if (!jn && !cn) continue;                       // 空白列略過
+      if (!judgeNames[jn]) {
+        warnings.push('迴避名單第 ' + (r + 2) + ' 列：找不到評審「' + jn + '」');
+        continue;
+      }
+      if (!pidOfTeam[cn]) {
+        warnings.push('迴避名單第 ' + (r + 2) + ' 列：找不到公司「' + cn + '」');
+        continue;
+      }
+      if (!recuse[jn]) recuse[jn] = [];
+      if (recuse[jn].indexOf(pidOfTeam[cn]) < 0) recuse[jn].push(pidOfTeam[cn]);
+    }
+  }
+
+  var lists = { projects: projects, judges: judges, recuse: recuse, warnings: warnings };
   CACHE.put(C_LISTS, JSON.stringify(lists), 300);
   return lists;
+}
+
+/** 某位評審的迴避公司（簡報順序陣列）。 */
+function recusedPids(judge) {
+  var r = getLists().recuse || {};
+  return r[judge] || [];
+}
+
+/** 某位評審實際應評的公司清單（已扣除迴避）。 */
+function eligibleProjects(judge) {
+  var skip = {};
+  recusedPids(judge).forEach(function (pid) { skip[pid] = true; });
+  return getLists().projects.filter(function (p) { return !skip[p.id]; });
 }
 
 /** 檢查評審是否在名單內（防呆：擋掉亂改網址的 ?judge=）。 */
@@ -610,6 +713,7 @@ function apiBootstrap(p) {
     confirmedAt: confirmMap[judge] || 0,
     dims: DIMS,
     projects: lists.projects,
+    excluded: recusedPids(judge),
     mine: mine,
     serverTime: Date.now()
   };
@@ -634,6 +738,11 @@ function apiSave(p) {
     if (projects[i].id === pid) { team = projects[i].team; break; }
   }
   if (!team) throw new Error('找不到編號 ' + pid + ' 的公司。');
+
+  // 利益迴避：後端最後一道防線
+  if (recusedPids(judge).indexOf(pid) >= 0) {
+    throw new Error('「' + team + '」已列為您的利益迴避對象，無法評分。');
+  }
 
   // 後端再驗一次分數範圍（前端已擋，這裡是最後一道防線）
   var values = [];
@@ -700,7 +809,8 @@ function apiSave(p) {
 
 function apiConfirm(p) {
   var judge = requireJudge(p.judge);
-  var projects = getLists().projects;
+  // 只要求「應評」的公司（已扣除利益迴避），迴避的公司不會卡住最終確認
+  var projects = eligibleProjects(judge);
 
   var rows = readAllScoreRows();
   var mine = {};
@@ -805,7 +915,8 @@ function apiAdmin(p) {
       org: j.org,
       name: j.name,
       confirmed: !!confirmMap[j.name],
-      confirmedAt: confirmMap[j.name] || 0
+      confirmedAt: confirmMap[j.name] || 0,
+      recused: (lists.recuse && lists.recuse[j.name]) || []
     };
   });
 
@@ -817,6 +928,8 @@ function apiAdmin(p) {
     dims: DIMS,
     projects: lists.projects,
     judges: judges,
+    recuse: lists.recuse || {},
+    warnings: lists.warnings || [],
     records: records
   };
 }
