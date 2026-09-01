@@ -82,9 +82,14 @@ a.tbtn{text-decoration:none;display:inline-block;line-height:normal}
 
 /* ── 版面 ── */
 .wrap{max-width:1560px;margin:0 auto;padding:20px 22px 60px}
-.apiwarn{margin:0 0 16px;padding:14px 16px;border-radius:10px;background:#fdeaea;
-  border:1px solid #e0a3a3;color:#8a1f1f;font-size:14px;font-weight:700;line-height:1.7}
+.apiwarn{position:relative;margin:0 0 16px;padding:14px 52px 14px 16px;border-radius:10px;
+  background:#fdeaea;border:1px solid #e0a3a3;color:#8a1f1f;font-size:14px;font-weight:700;line-height:1.7}
+.apiwarn.warn{background:#fff6e2;border-color:#e8c98a;color:#6d4300}
 .apiwarn-v{display:block;margin-top:6px;font-weight:500;font-size:12px;opacity:.8}
+.apiwarn .x{position:absolute;top:11px;right:12px;padding:5px 11px;border-radius:8px;
+  border:1.5px solid currentColor;background:transparent;color:inherit;
+  font-size:12.5px;font-weight:800;opacity:.75}
+.apiwarn .x:hover{opacity:1;background:rgba(0,0,0,.05)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 17px;box-shadow:var(--shadow-1)}
 .kpi .k{font-size:11.5px;letter-spacing:1.4px;color:var(--ink-3);font-weight:800}
@@ -906,18 +911,54 @@ function setLive(kind, text){
   $('#liveTxt').textContent = text;
 }
 /* 後端版本護欄：抓到舊版就在最上方顯示紅色橫幅，避免「改了程式忘了重新部署」靜默出錯 */
+var DEPLOY_STEPS = '部署 → 管理部署作業 → 編輯（鉛筆）→ 版本改「新版本」→ 部署';
+var apiWarnShown = '';     // 目前畫面上顯示的是哪一種，避免每次輪詢都重繪
+
+/**
+ * 後端版本護欄，分兩種嚴重度：
+ *   1. 完全沒有回報 api → 部署的是「加入版本護欄之前」的程式碼。
+ *      這種情況計分規則多半仍是對的，用琥珀色提醒即可，不要嚇人。
+ *   2. 有回報 api 但數字較小 → 程式確實改過卻沒重新部署，畫面上的權重／迴避
+ *      可能真的不對，維持紅色警告。
+ * 兩種都可以按「知道了」關掉（記在 sessionStorage，重開分頁才會再出現），
+ * 活動當天不能讓一條橫幅一直佔著後台最上方。
+ */
 function checkApiVersion(api){
   var box = $('#apiWarn'); if (!box) return;
   var n = Number(api);
-  if (isFinite(n) && n >= EXPECT_API){ box.innerHTML = ''; return; }
+  var kind = (isFinite(n) && n >= EXPECT_API) ? ''
+           : (api === undefined || api === null || api === '') ? 'warn' : 'stale';
+
+  if (!kind){ box.innerHTML = ''; apiWarnShown = ''; return; }
+  if (ssGet('apiwarn.hide') === kind){ box.innerHTML = ''; apiWarnShown = ''; return; }
+  if (apiWarnShown === kind) return;      // 已經顯示同一種，不要重畫（否則關不掉）
+  apiWarnShown = kind;
+
+  var body = (kind === 'warn')
+    ? '提醒：Apps Script 上執行的還是舊版程式碼（沒有回報版本號）。<br>' +
+      '若您最近沒有修改過計分規則，<b>目前的分數與名次仍然是正確的</b>，可以照常使用。<br>' +
+      '要讓這個提醒消失、並讓日後的版本檢查生效：把 repo 的 <b>apps-script/Code.gs</b> 全選複製 → ' +
+      '貼進 Apps Script 編輯器覆蓋 → 存檔 → ' + DEPLOY_STEPS + '。'
+    : '⚠ 後端版本過舊：Apps Script 程式已更新，但網頁應用程式尚未重新部署，' +
+      '畫面上的權重與利益迴避可能不正確。<br>' +
+      '請到 Apps Script → ' + DEPLOY_STEPS + '，完成後重新整理本頁。';
+
   box.innerHTML =
-    '<div class="apiwarn">⚠ 後端版本過舊：Apps Script 程式已更新，但網頁應用程式尚未重新部署，' +
-    '畫面上的權重與利益迴避可能不正確。<br>' +
-    '請到 Apps Script → 部署 → 管理部署作業 → 編輯（鉛筆）→ 版本改「新版本」→ 部署，' +
-    '完成後重新整理本頁。' +
-    '<span class="apiwarn-v">（後端回報 api=' + (api === undefined ? '無' : esc(String(api))) +
-    '，本頁需要 ' + EXPECT_API + '）</span></div>';
+    '<div class="apiwarn ' + kind + '" data-kind="' + kind + '">' +
+      '<button class="x" type="button" id="apiWarnClose">知道了</button>' +
+      body +
+      '<span class="apiwarn-v">（後端回報 api=' +
+        (api === undefined || api === null || api === '' ? '無' : esc(String(api))) +
+        '，本頁需要 ' + EXPECT_API + '）</span>' +
+    '</div>';
+  $('#apiWarnClose').addEventListener('click', function(){
+    ssSet('apiwarn.hide', kind);
+    box.innerHTML = ''; apiWarnShown = '';
+  });
 }
+
+function ssGet(k){ try { return sessionStorage.getItem(k) || ''; } catch (e){ return ''; } }
+function ssSet(k, v){ try { sessionStorage.setItem(k, v); } catch (ignore) {} }
 
 function pull(force){
   return jsonp({ action:'admin', key:KEY, since:D.v, force: force ? '1' : '' })

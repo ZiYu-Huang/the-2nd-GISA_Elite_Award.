@@ -545,8 +545,7 @@ table.grid tr:last-child td{border-bottom:none}
 
     <div class="recuse-note" id="recuseNote" hidden>
       <h3>利益迴避 — 本公司不需評分</h3>
-      <p>依主辦單位設定，您與這家公司具利益關係，因此本公司不列入您的評分範圍。<br>
-         <b>下方欄位已鎖定，無法輸入。</b>您的評分進度與最終確認都已自動扣除這家公司，
+      <p><b>下方欄位已鎖定，無法輸入。</b>您的評分進度與最終確認都已自動扣除這家公司，
          請按「下一家」繼續評選其他公司即可。</p>
     </div>
 
@@ -1535,9 +1534,11 @@ function boot(){
     .then(function(b){
       // 後端版本護欄：評審端不顯示橫幅（避免現場困惑），只在主控台提醒主辦單位
       if (!(Number(b.api) >= EXPECT_API)) {
-        console.warn('[GISA] 後端版本過舊（回報 api=' + b.api + '，本頁需要 ' + EXPECT_API + '）。' +
-          'Apps Script 程式已更新但尚未重新部署，權重與利益迴避可能是舊的。' +
-          '請到 Apps Script → 部署 → 管理部署作業 → 編輯 → 版本：新版本 → 部署。');
+        console.warn('[GISA] 後端未回報版本號或版本較舊（回報 api=' + b.api +
+          '，本頁需要 ' + EXPECT_API + '）。Apps Script 上執行的程式碼比網站舊；' +
+          '若最近修改過計分規則卻沒有重新部署，權重與利益迴避可能是舊的。' +
+          '更新方式：把 repo 的 apps-script/Code.gs 貼進編輯器覆蓋 → 存檔 → ' +
+          '部署 → 管理部署作業 → 編輯 → 版本：新版本 → 部署。');
       }
       var keep = state.current;
       applyBoot(b, false);

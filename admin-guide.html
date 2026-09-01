@@ -324,10 +324,19 @@ td.k{font-weight:800;color:var(--navy-800);white-space:nowrap}
       三個檔案裡的 <code>API_URL</code> 全部改掉，否則系統會連到舊的後端。</span>
     </div>
 
+    <div class="tip tip-danger">
+      <span class="ic" aria-hidden="true">!</span>
+      <span>後台最上方出現<b>紅色</b>的「後端版本過舊」→ 就是這個狀況：程式改了但沒重新部署。
+      照上面五個步驟做完，重新整理後台即可。</span>
+    </div>
+
     <div class="tip tip-warn">
       <span class="ic" aria-hidden="true">⚠</span>
-      <span>若後台最上方出現紅色的 <b>「後端版本過舊」</b> 橫幅，
-      就是這個狀況——程式改了但沒重新部署。照上面五個步驟做完，重新整理後台即可，橫幅會自動消失。</span>
+      <span>後台最上方出現<b>琥珀色</b>的提醒（「沒有回報版本號」）→ 代表 Apps Script 上的程式碼
+      比網站上的舊。<b>若您沒有修改過計分規則，分數與名次仍然是正確的</b>，可以照常使用。
+      要讓提醒消失，請把 repo 的 <code>apps-script/Code.gs</code> 全選複製、貼進 Apps Script
+      編輯器覆蓋、存檔，再照上面五個步驟重新部署。<br>
+      兩種橫幅都可以按右上角的「知道了」暫時關掉（重開分頁會再出現），不影響任何計分。</span>
     </div>
   </section>
 
