@@ -648,6 +648,8 @@ table.grid tr:last-child td{border-bottom:none}
    設定：部署後只需要改這一行
    ═══════════════════════════════════════════════════════════ */
 var API_URL = 'https://script.google.com/macros/s/AKfycbwc5y9LCuvER_FJZFvXh3irojGWSZuIkcy-BUbsjpZXksu9FjXyU3iURrv0rRehN3Hlqg/exec';   // ← 貼上 Apps Script 網頁應用程式的 /exec 網址
+// 後端 Code.gs 的 API_VERSION 必須 >= 這個數字，否則代表改了程式但忘了重新部署（僅在主控台提醒）
+var EXPECT_API = 2;
 
 /* 頁首主視覺圖片（可留空）
    留空 → 使用內建的 CSS 版 2026 主視覺（深藍星空＋青綠光束＋金色斜線）。
@@ -1492,6 +1494,12 @@ function boot(){
   // 2) 再向後端要一次完整資料（之後全程不再連線，除非送出）
   jsonp({ action:'bootstrap', judge:JUDGE })
     .then(function(b){
+      // 後端版本護欄：評審端不顯示橫幅（避免現場困惑），只在主控台提醒主辦單位
+      if (!(Number(b.api) >= EXPECT_API)) {
+        console.warn('[GISA] 後端版本過舊（回報 api=' + b.api + '，本頁需要 ' + EXPECT_API + '）。' +
+          'Apps Script 程式已更新但尚未重新部署，權重與利益迴避可能是舊的。' +
+          '請到 Apps Script → 部署 → 管理部署作業 → 編輯 → 版本：新版本 → 部署。');
+      }
       var keep = state.current;
       applyBoot(b, false);
       if (keep && state.projects.some(function(p){ return p.id === keep; })) selectProject(keep, false);

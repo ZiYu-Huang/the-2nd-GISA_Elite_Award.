@@ -81,6 +81,9 @@ button{cursor:pointer;border:none;background:none}
 
 /* ── 版面 ── */
 .wrap{max-width:1560px;margin:0 auto;padding:20px 22px 60px}
+.apiwarn{margin:0 0 16px;padding:14px 16px;border-radius:10px;background:#fdeaea;
+  border:1px solid #e0a3a3;color:#8a1f1f;font-size:14px;font-weight:700;line-height:1.7}
+.apiwarn-v{display:block;margin-top:6px;font-weight:500;font-size:12px;opacity:.8}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 17px;box-shadow:var(--shadow-1)}
 .kpi .k{font-size:11.5px;letter-spacing:1.4px;color:var(--ink-3);font-weight:800}
@@ -220,6 +223,7 @@ body.project .tabs,body.project .panel-head .r{opacity:.6}
 </header>
 
 <main class="wrap" id="app" hidden>
+  <div id="apiWarn"></div>
   <div class="kpis" id="kpis"></div>
 
   <div class="tabs" role="tablist">
@@ -326,6 +330,10 @@ var POLL_MS = 4000;
 var $ = function(s){ return document.querySelector(s); };
 var LSK = 'gisa2.adminkey';
 var KEY = new URLSearchParams(location.search).get('key') || localStorage.getItem(LSK) || '';
+
+// 本頁預期的後端 API 版本；後端 Code.gs 的 API_VERSION 必須 >= 這個數字。
+// 若後端較舊，代表 Apps Script 改了程式但沒有重新部署，畫面上的權重／迴避可能是舊的。
+var EXPECT_API = 2;
 
 var D = { v:-1, dims:[], projects:[], judges:[], records:[], recuse:{}, warnings:[] };
 var auto = true, timer = null, view = 'final', lastOk = 0;
@@ -895,10 +903,25 @@ function setLive(kind, text){
   $('#dot').className = 'dot' + (kind === 'ok' ? '' : ' ' + kind);
   $('#liveTxt').textContent = text;
 }
+/* 後端版本護欄：抓到舊版就在最上方顯示紅色橫幅，避免「改了程式忘了重新部署」靜默出錯 */
+function checkApiVersion(api){
+  var box = $('#apiWarn'); if (!box) return;
+  var n = Number(api);
+  if (isFinite(n) && n >= EXPECT_API){ box.innerHTML = ''; return; }
+  box.innerHTML =
+    '<div class="apiwarn">⚠ 後端版本過舊：Apps Script 程式已更新，但網頁應用程式尚未重新部署，' +
+    '畫面上的權重與利益迴避可能不正確。<br>' +
+    '請到 Apps Script → 部署 → 管理部署作業 → 編輯（鉛筆）→ 版本改「新版本」→ 部署，' +
+    '完成後重新整理本頁。' +
+    '<span class="apiwarn-v">（後端回報 api=' + (api === undefined ? '無' : esc(String(api))) +
+    '，本頁需要 ' + EXPECT_API + '）</span></div>';
+}
+
 function pull(force){
   return jsonp({ action:'admin', key:KEY, since:D.v, force: force ? '1' : '' })
     .then(function(res){
       lastOk = Date.now();
+      checkApiVersion(res.api);
       if (res.changed){
         D.v = res.v; D.dims = res.dims; D.projects = res.projects;
         D.judges = res.judges; D.records = res.records;

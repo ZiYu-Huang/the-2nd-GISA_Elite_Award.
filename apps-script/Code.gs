@@ -22,9 +22,19 @@
  *      - 執行身分：我
  *      - 誰可以存取：任何人
  *   5) 把 /exec 網址填進 index.html、admin.html 的 API_URL。
+ *
+ *   ※ 之後每次修改本檔案，一定要重新部署，否則 /exec 仍在服務舊版程式碼：
+ *      部署 → 管理部署作業 → 編輯（鉛筆）→ 版本：新版本 → 部署。
+ *      不要用「新增部署作業」，那會產生新的 /exec 網址，得回頭改三個檔案的 API_URL。
+ *      忘記重新部署時，後台「最終成績表」會出現紅色「後端版本過舊」警示。
  */
 
 /* ═══════════════════════ 基本設定 ═══════════════════════ */
+
+/** 後端 API 版本。每次修改本檔案的計分規則（權重、迴避、決選邏輯）就 +1，
+ *  後台會比對這個數字，若前端拿到的版本比預期舊，代表「改了程式但忘了重新部署」，
+ *  後台會跳紅色警示。前端預期的版本寫在 admin.html 的 EXPECT_API。 */
+var API_VERSION = 2;
 
 var SHEETS = {
   COMPANIES: '公司名單',
@@ -460,6 +470,8 @@ function doPost(e) {
 }
 
 function reply(obj, callback) {
+  // 統一注入後端版本，所有端點都會帶上，日後新增端點也不會漏
+  if (obj && typeof obj === 'object' && !(obj instanceof Array)) obj.api = API_VERSION;
   var json = JSON.stringify(obj);
   if (callback && /^[A-Za-z_$][\w$]*$/.test(callback)) {
     return ContentService
