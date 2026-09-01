@@ -238,6 +238,17 @@ button{cursor:pointer;border:none;background:none}
 .recuse-note h3{margin:0 0 8px;font-size:17px;font-weight:800;color:#7a4d00}
 .recuse-note p{margin:0;font-size:14.5px;line-height:1.8;color:#6b4a12}
 .dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;padding:16px 20px 4px}
+
+/* 利益迴避：欄位照樣顯示，但整組轉灰鎖住 */
+.dims.recused .dim{background:var(--surface-2);border-left-color:var(--line-strong);box-shadow:none}
+.dims.recused .dim-idx{background:var(--ink-3)}
+.dims.recused .dim-name,.dims.recused .dim-max,.dims.recused .dim-scale{color:var(--ink-3)}
+.dims.recused .dim-max{background:var(--surface-2);border-color:var(--line)}
+.dims.recused input[type="number"],
+.cmt.recused textarea{background:#f1f3f7;color:var(--ink-3);border-color:var(--line);cursor:not-allowed}
+.dims.recused .stepper{background:var(--surface-2);color:var(--line-strong);border-color:var(--line);cursor:not-allowed}
+.dims.recused input[type="range"]{opacity:.4;cursor:not-allowed}
+.cmt.recused label,.cmt.recused .opt,.cmt.recused .cnt{color:var(--ink-3)}
 .dim{
   border:1px solid var(--line);border-radius:var(--r-md);
   border-left:5px solid var(--c);background:var(--surface);
@@ -535,7 +546,8 @@ table.grid tr:last-child td{border-bottom:none}
     <div class="recuse-note" id="recuseNote" hidden>
       <h3>利益迴避 — 本公司不需評分</h3>
       <p>依主辦單位設定，您與這家公司具利益關係，因此本公司不列入您的評分範圍。<br>
-         您的評分進度與最終確認都已自動扣除這家公司，請直接評選其他公司即可。</p>
+         <b>下方欄位已鎖定，無法輸入。</b>您的評分進度與最終確認都已自動扣除這家公司，
+         請按「下一家」繼續評選其他公司即可。</p>
     </div>
 
     <div class="dims" id="dims"></div>
@@ -834,7 +846,8 @@ function buildDims(){
 function fmtLoose(n){ return String(round2(n)); }
 
 function onScoreInput(key, raw, src){
-  if (state.locked) return;
+  // 已封存或利益迴避的公司一律不吃輸入（欄位本身也已 disabled，這是第二道保險）
+  if (state.locked || isRecused(state.current)) return;
   var d = state.drafts[state.current];
   if (!d) return;
   d.scores[key] = raw;
@@ -938,7 +951,7 @@ function buildRail(){
   $('#rail').innerHTML = state.projects.map(function(p){
     var rec = isRecused(p.id);
     return '<button class="co" type="button" role="tab" data-pid="'+p.id+'" ' +
-             (rec ? 'disabled aria-disabled="true" title="利益迴避，不需評分" ' : 'title="'+esc(p.team)+'" ') +
+             'title="' + (rec ? '利益迴避，不需評分' : esc(p.team)) + '" ' +
              '>' +
              '<span class="n">'+esc(p.id)+'</span>' +
              '<span class="nm">'+esc(p.team)+'</span>' +
@@ -947,7 +960,7 @@ function buildRail(){
   }).join('');
   $('#rail').addEventListener('click', function(e){
     var b = e.target.closest('[data-pid]');
-    if (b && !b.disabled) selectProject(b.dataset.pid, true);
+    if (b) selectProject(b.dataset.pid, true);
   });
 }
 function paintRail(){
@@ -999,10 +1012,11 @@ function selectProject(pid, scroll){
   $('#nowName').textContent = p.team;
 
   var recused = isRecused(pid);
-  $('#dims').classList.toggle('hide', recused);
+  // 迴避的公司照樣顯示評分欄位，但整組轉灰鎖住，避免評審不小心把分數填進去
+  $('#dims').classList.toggle('recused', recused);
   $('#recuseNote').hidden = !recused;
   var cmtBox = document.querySelector('.cmt');
-  if (cmtBox) cmtBox.classList.toggle('hide', recused);
+  if (cmtBox) cmtBox.classList.toggle('recused', recused);
 
   var saved = state.saved[pid];
   var meta;
@@ -1017,14 +1031,20 @@ function selectProject(pid, scroll){
   $('#nowMeta').textContent = meta;
 
   DIMS.forEach(function(d){
-    $('#in-'+d.key).value = draft.scores[d.key];
-    syncRange(d.key, draft.scores[d.key]);
+    var v = recused ? '' : draft.scores[d.key];
+    var el = $('#in-'+d.key);
+    el.value = v;
+    el.placeholder = recused ? '—' : '0';   // 迴避時不要留「0」，免得看起來像已經打了 0 分
+    syncRange(d.key, v);
     validateField(d.key);
   });
-  $('#comment').value = draft.comment || '';
+  $('#comment').value = recused ? '' : (draft.comment || '');
+  $('#comment').placeholder = recused
+    ? '本公司為您的利益迴避對象，不需填寫。'
+    : '對這家公司的觀察、建議或提醒（最多 300 字，會一併記錄於後台）';
   updateCmtCount();
   updateTotal();
-  $('#btnSave').disabled = state.locked || recused;
+  applyFieldState();
   paintRail();
   paintList();
   syncNav();
@@ -1043,16 +1063,15 @@ function indexOfCurrent(){
   return -1;
 }
 /**
- * 往前／往後找「下一家應評的公司」，自動略過利益迴避的公司。
- * 找不到就回傳 null（代表已經到頭了）。
+ * 單純的前一家／後一家。
+ * 迴避的公司「照樣會停」，只是欄位鎖住不能填——這樣評審才看得到自己為什麼跳過它，
+ * 而不是覺得系統漏了一家。找不到就回傳 null（代表已經到頭了）。
  */
 function neighbourPid(delta){
   var i = indexOfCurrent();
   if (i < 0) return null;
-  for (var k = i + delta; k >= 0 && k < state.projects.length; k += delta){
-    if (!isRecused(state.projects[k].id)) return state.projects[k].id;
-  }
-  return null;
+  var k = i + delta;
+  return (k >= 0 && k < state.projects.length) ? state.projects[k].id : null;
 }
 function step(delta){
   var pid = neighbourPid(delta);
@@ -1401,17 +1420,27 @@ function showDone(){
  * 兩個方向都要處理：主辦單位若在後台解除了最終確認，重新整理後必須恢復可編輯，
  * 否則本機快取會讓評審一直停在「已完成」畫面（先前版本的問題）。
  */
-function applyLock(){
-  var lock = !!state.locked;
+/**
+ * 統一決定「現在能不能填」。兩種情況會鎖住：
+ *   1. 已完成最終確認（整份封存）
+ *   2. 目前這家是利益迴避對象（欄位顯示但轉灰，不能輸入）
+ * selectProject 與 applyLock 都呼叫這裡，避免兩邊各寫一份而走鐘。
+ */
+function applyFieldState(){
+  var lock = !!state.locked || isRecused(state.current);
   DIMS.forEach(function(d){
     $('#in-'+d.key).disabled = lock;
     $('#rg-'+d.key).disabled = lock;
   });
   document.querySelectorAll('.stepper').forEach(function(b){ b.disabled = lock; });
   $('#comment').disabled = lock;
-  // 迴避中的公司即使沒鎖定也不能送出
-  $('#btnSave').disabled = lock || isRecused(state.current);
-  $('#btnFinal').disabled = lock || eligibleProjects().length === 0;
+  $('#btnSave').disabled = lock;
+  $('#btnFinal').disabled = !!state.locked || eligibleProjects().length === 0;
+}
+
+function applyLock(){
+  var lock = !!state.locked;
+  applyFieldState();
 
   if (lock){
     showDone();
@@ -1529,6 +1558,7 @@ function boot(){
 /* ═══════════════════════ 事件綁定 ═══════════════════════ */
 $('#comment').addEventListener('input', function(){
   updateCmtCount();
+  if (state.locked || isRecused(state.current)) return;
   var d = state.drafts[state.current];
   if (d){ d.comment = $('#comment').value; saveDraft(state.current); paintRail(); }
 });

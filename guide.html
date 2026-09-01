@@ -45,6 +45,8 @@ b,strong{font-weight:800}
 .tb-p:hover{background:var(--navy-700);color:#fff}
 
 /* ── 卡片 ── */
+.localnote{background:#fff6e2;border:2px solid #e8c98a;color:#6d4300;
+  border-radius:13px;padding:16px 20px;margin-bottom:22px;font-size:16px;line-height:1.8;font-weight:600}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
   padding:26px 28px;margin-bottom:24px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 2px 10px rgba(15,23,42,.05)}
 h2{margin:0 0 6px;font-size:27px;font-weight:800;letter-spacing:.4px;line-height:1.4}
@@ -136,7 +138,7 @@ li{margin-bottom:9px}
   .hero .s{color:var(--ink-3)}
   .mk{display:none}
   .hero h1{font-size:20pt}
-  .toolbar,.foot{display:none}
+  .toolbar,.foot,.localnote{display:none}
   .wrap{padding:0;max-width:none}
   .card{box-shadow:none;border-color:#999;padding:14px 16px;margin-bottom:14px;break-inside:avoid}
   .quick{break-after:page;border-width:1.5px}
@@ -163,8 +165,15 @@ li{margin-bottom:9px}
 
   <div class="toolbar">
     <button class="tb tb-p" id="btnPrint" type="button">列印 ／ 存成 PDF</button>
-    <a class="tb" href="index.html">回到評分頁面</a>
+    <a class="tb" data-site href="index.html">回到評分頁面</a>
   </div>
+
+  <div class="localnote" id="localNote" hidden>
+    這份手冊目前是從<b>電腦裡的檔案</b>開啟的，所以站內連結（後台監控、評審專屬連結、評分頁面）
+    已暫時隱藏——那些頁面在評分系統網站上，本機資料夾裡找不到，點了會出現「找不到檔案」。<br>
+    內容照樣可以閱讀與列印；要使用那些頁面，請改從主辦單位提供的<b>評分系統網址</b>開啟本手冊。
+  </div>
+
 
   <!-- ══════ 速查 ══════ -->
   <section class="card quick">
@@ -302,8 +311,10 @@ li{margin-bottom:9px}
 
     <div class="qa">
       <div class="q">畫面出現「利益迴避 — 本公司不需評分」</div>
-      <div class="a">這是正常的。主辦單位已依規定將這家公司排除在您的評分範圍外，
-        您的<b>進度圈和最終確認都已經自動扣掉這家</b>，請直接評其他公司即可，不必做任何處理。</div>
+      <div class="a">這是正常的。主辦單位已依規定將這家公司排除在您的評分範圍外。
+        該公司的<b>評分欄位會變成灰色、打不進去任何數字</b>，您的
+        <b>進度圈和最終確認也都已經自動扣掉這家</b>。
+        直接按「下一家」繼續評其他公司即可，不必做任何處理。</div>
     </div>
 
     <div class="qa">
@@ -341,6 +352,29 @@ li{margin-bottom:9px}
 
 <script>
 document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+
+/* ── 站內連結：這頁被下載到電腦單獨開啟時（file://），旁邊沒有其他頁面，
+      相對連結會變成 404，所以直接收起來並說明原因，而不是留死連結。 ── */
+(function(){
+  var local = location.protocol === 'file:';
+  var links = [].slice.call(document.querySelectorAll('.toolbar a.tb[data-site]'));
+  if (local){
+    links.forEach(function(a){ a.hidden = true; });
+    var n = document.getElementById('localNote');
+    if (n) n.hidden = false;
+    return;
+  }
+  // 從網站開啟：若瀏覽器已存過後台金鑰，就讓「前往後台監控」直接帶著金鑰進去
+  var key = '';
+  try { key = localStorage.getItem('gisa2.adminkey') || ''; } catch (ignore) {}
+  if (!key) return;
+  links.forEach(function(a){
+    if (/admin\.html$/.test(a.getAttribute('href'))){
+      a.setAttribute('href', 'admin.html?key=' + encodeURIComponent(key));
+    }
+  });
+})();
+
 </script>
 </body>
 </html>
