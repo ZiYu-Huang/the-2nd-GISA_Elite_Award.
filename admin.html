@@ -72,6 +72,7 @@ button{cursor:pointer;border:none;background:none}
   background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;
 }
 .tbtn:hover{background:rgba(255,255,255,.24)}
+a.tbtn{text-decoration:none;display:inline-block;line-height:normal}
 .tbtn[aria-pressed="true"]{background:var(--gold-500);border-color:var(--gold-500);color:var(--navy-900)}
 .live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#c3d3e8;font-variant-numeric:tabular-nums}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(12,163,12,.6);animation:pulse 2s infinite}
@@ -218,6 +219,7 @@ body.project .tabs,body.project .panel-head .r{opacity:.6}
       <button class="tbtn" id="btnRefresh" type="button">立即更新</button>
       <button class="tbtn" id="btnTheme" aria-pressed="false" type="button">投影模式</button>
       <button class="tbtn" id="btnCsv" type="button">匯出 CSV</button>
+      <a class="tbtn" id="btnHelp" href="admin-guide.html" target="_blank" rel="noopener">操作說明</a>
     </div>
   </div>
 </header>

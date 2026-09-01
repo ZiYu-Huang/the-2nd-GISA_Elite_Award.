@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2b57'/%3E%3Cpath d='M20 44V20h24' stroke='%23c8a34a' stroke-width='6' fill='none'/%3E%3Cpath d='M20 44h24V32H32' stroke='%23e3c887' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<title>評審委員操作說明 — 第二屆 GISA 創櫃菁英選拔</title>
+<style>
+:root{
+  --navy-900:#08213f; --navy-800:#0b2b57; --navy-700:#123f7d; --navy-600:#1a559f;
+  --gold-500:#c8a34a; --gold-300:#e3c887;
+  --page:#eef1f6; --surface:#fff; --surface-2:#f7f9fc;
+  --ink:#0f172a; --ink-2:#3d4c60; --ink-3:#6b7789;
+  --line:#e3e8f0; --line-strong:#cbd5e1;
+  --ok:#0b7a0b; --danger:#b42318;
+  --font:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--page);color:var(--ink);
+  font-size:19px;line-height:1.9;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:3px solid var(--navy-600);outline-offset:2px;border-radius:4px}
+b,strong{font-weight:800}
+
+/* ── 頁首 ── */
+.hero{background:linear-gradient(135deg,var(--navy-900),var(--navy-800) 55%,var(--navy-700));
+  color:#fff;padding:30px 22px;position:relative}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:4px;
+  background:linear-gradient(90deg,transparent,var(--gold-500),var(--gold-300),var(--gold-500),transparent)}
+.hero-in{max-width:1000px;margin:0 auto;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.mk{width:62px;height:62px;border-radius:15px;background:linear-gradient(150deg,var(--gold-300),var(--gold-500));
+  color:var(--navy-900);display:grid;place-items:center;font-weight:800;font-size:14px;line-height:1.15;text-align:center}
+.hero h1{margin:0;font-size:30px;font-weight:800;letter-spacing:.5px;line-height:1.35}
+.hero .s{font-size:16px;color:#c3d3e8;margin-top:5px}
+
+.wrap{max-width:1000px;margin:0 auto;padding:26px 22px 60px}
+
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.tb{padding:12px 20px;border-radius:11px;font-weight:800;font-size:16px;text-decoration:none;
+  border:2px solid var(--line-strong);background:var(--surface);color:var(--navy-700);display:inline-block}
+.tb:hover{background:#eef4fd;border-color:var(--navy-600)}
+.tb-p{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
+.tb-p:hover{background:var(--navy-700);color:#fff}
+
+/* ── 卡片 ── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  padding:26px 28px;margin-bottom:24px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 2px 10px rgba(15,23,42,.05)}
+h2{margin:0 0 6px;font-size:27px;font-weight:800;letter-spacing:.4px;line-height:1.4}
+h2 .sub{display:block;font-size:16px;font-weight:600;color:var(--ink-3);letter-spacing:0;margin-top:4px}
+h3{margin:26px 0 8px;font-size:21px;font-weight:800;color:var(--navy-700)}
+h3:first-child{margin-top:0}
+p{margin:0 0 12px}
+.lead{font-size:20px;color:var(--ink-2)}
+
+/* ── 速查三步驟 ── */
+.quick{background:linear-gradient(160deg,#fff,#f4f8ff);border:2px solid var(--navy-600)}
+.steps{display:grid;gap:20px;margin-top:20px}
+.step{display:flex;gap:20px;align-items:flex-start;
+  background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:20px 22px}
+.step .no{flex:0 0 auto;width:58px;height:58px;border-radius:50%;
+  background:linear-gradient(150deg,var(--navy-700),var(--navy-900));color:#fff;
+  display:grid;place-items:center;font-size:30px;font-weight:800;line-height:1}
+.step .bd{flex:1 1 auto;min-width:0}
+.step .t{font-size:25px;font-weight:800;line-height:1.45;margin-bottom:6px}
+.step .d{font-size:18px;color:var(--ink-2);line-height:1.85}
+
+/* 按鈕示意 */
+.btnshot{display:inline-flex;align-items:center;padding:9px 18px;border-radius:11px;
+  font-size:17px;font-weight:800;letter-spacing:.5px;vertical-align:middle;margin:0 2px;
+  white-space:nowrap}
+.bs-blue{background:linear-gradient(135deg,var(--navy-700),var(--navy-800));color:#fff}
+.bs-gold{background:linear-gradient(135deg,var(--gold-500),#b08c34);color:var(--navy-900)}
+.bs-gray{background:var(--surface);border:2px solid var(--line-strong);color:var(--ink-2)}
+
+.dockshot{margin-top:22px;border:2px dashed var(--line-strong);border-radius:16px;
+  padding:18px 20px;background:var(--surface-2)}
+.dockshot .cap{font-size:15px;font-weight:800;color:var(--ink-3);letter-spacing:1px;margin-bottom:12px}
+.dockrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dockrow .tot{display:flex;align-items:baseline;gap:8px;margin-right:6px}
+.dockrow .tot .c{font-size:14px;font-weight:800;color:var(--ink-3);letter-spacing:1.5px}
+.dockrow .tot .v{font-size:34px;font-weight:800;color:var(--navy-800);line-height:1}
+.dockrow .tot .m{font-size:15px;font-weight:700;color:var(--ink-3)}
+
+/* ── 構面表 ── */
+.dims{margin:14px 0 4px;border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.dimrow{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--line);
+  background:var(--surface)}
+.dimrow:last-child{border-bottom:none}
+.dimrow .i{flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--navy-700);color:#fff;
+  display:grid;place-items:center;font-size:17px;font-weight:800}
+.dimrow .n{flex:1 1 auto;font-size:20px;font-weight:700}
+.dimrow .m{flex:0 0 auto;font-size:18px;font-weight:800;color:var(--navy-800);
+  background:#eef4fd;border:1.5px solid #cddffb;border-radius:9px;padding:4px 14px;white-space:nowrap}
+.dimtotal{display:flex;justify-content:space-between;padding:14px 18px;background:var(--navy-800);color:#fff;
+  font-size:20px;font-weight:800}
+
+/* ── 提示框 ── */
+.tip{border-radius:14px;padding:18px 22px;margin:18px 0;font-size:18px;line-height:1.85;
+  border:2px solid;display:flex;gap:14px;align-items:flex-start}
+.tip .ic{flex:0 0 auto;font-size:26px;line-height:1.3}
+.tip-ok{background:#eefaee;border-color:#b7e3b7;color:#12500f}
+.tip-warn{background:#fff6e2;border-color:#e8c98a;color:#6d4300}
+.tip-info{background:#eef4fd;border-color:#c3d8f7;color:#123f7d}
+
+/* ── 問答 ── */
+.qa{border-top:1.5px solid var(--line);padding-top:20px;margin-top:20px}
+.qa:first-of-type{border-top:none;padding-top:0;margin-top:8px}
+.qa .q{font-size:21px;font-weight:800;color:var(--navy-800);margin-bottom:8px;line-height:1.5}
+.qa .q::before{content:"Q　";color:var(--gold-500)}
+.qa .a{font-size:18px;color:var(--ink-2)}
+
+ul{margin:8px 0 14px;padding-left:26px}
+li{margin-bottom:9px}
+.kbd{display:inline-block;background:var(--surface-2);border:1.5px solid var(--line-strong);
+  border-radius:7px;padding:2px 10px;font-size:17px;font-weight:700;color:var(--navy-700);white-space:nowrap}
+
+.foot{text-align:center;color:var(--ink-3);font-size:16px;line-height:1.9;margin-top:34px}
+
+@media (max-width:640px){
+  body{font-size:18px}
+  .hero h1{font-size:24px}
+  h2{font-size:23px}
+  .step{gap:14px;padding:16px}
+  .step .no{width:46px;height:46px;font-size:24px}
+  .step .t{font-size:21px}
+  .card{padding:20px 18px}
+  .wrap{padding:20px 14px 44px}
+}
+
+@media print{
+  body{background:#fff;font-size:13pt;line-height:1.7}
+  .hero{padding:14px 0;background:none;color:var(--ink)}
+  .hero::after{display:none}
+  .hero .s{color:var(--ink-3)}
+  .mk{display:none}
+  .hero h1{font-size:20pt}
+  .toolbar,.foot{display:none}
+  .wrap{padding:0;max-width:none}
+  .card{box-shadow:none;border-color:#999;padding:14px 16px;margin-bottom:14px;break-inside:avoid}
+  .quick{break-after:page;border-width:1.5px}
+  .step{break-inside:avoid}
+  .qa{break-inside:avoid}
+  h2{font-size:16pt}
+  .step .t{font-size:14pt}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="mk">GISA<br>菁英</div>
+    <div>
+      <h1>評審委員　操作說明</h1>
+      <div class="s">第二屆 GISA 創櫃菁英選拔　決選評分系統</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <button class="tb tb-p" id="btnPrint" type="button">列印 ／ 存成 PDF</button>
+    <a class="tb" href="index.html">回到評分頁面</a>
+  </div>
+
+  <!-- ══════ 速查 ══════ -->
+  <section class="card quick">
+    <h2>三個步驟就完成
+      <span class="sub">這一頁看完就會用了，其餘說明在後面，看不懂再往下翻即可。</span>
+    </h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="no">1</div>
+        <div class="bd">
+          <div class="t">用主辦單位給您的專屬連結開啟</div>
+          <div class="d">
+            連結裡已經包含您的姓名，<b>不需要帳號、不需要密碼、不需要登入</b>。<br>
+            手機、平板、電腦都可以，用瀏覽器打開就能評分。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="no">2</div>
+        <div class="bd">
+          <div class="t">五個欄位打完分數，按 <span class="btnshot bs-blue">送出評分</span></div>
+          <div class="d">
+            送出後畫面會<b>自動跳到下一家公司</b>，接著評下一家就好。<br>
+            分數送出後<b>還可以修改</b>，直到您按下最終確認為止。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="no">3</div>
+        <div class="bd">
+          <div class="t">全部評完後，按 <span class="btnshot bs-gold">最終確認</span></div>
+          <div class="d">
+            畫面會列出您所有的分數讓您再看一次 → <b>勾選下方的聲明</b> → 按「確認送出」。<br>
+            送出後分數封存，就完成了，可以關閉頁面。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dockshot">
+      <div class="cap">畫面最下方會固定出現這一排（不必往下捲動就找得到）</div>
+      <div class="dockrow">
+        <div class="tot"><span class="c">總分</span><span class="v">86.50</span><span class="m">/ 100</span></div>
+        <span class="btnshot bs-blue">送出評分</span>
+        <span class="btnshot bs-gray">查看所有公司評分</span>
+        <span class="btnshot bs-gold">最終確認</span>
+      </div>
+    </div>
+
+    <div class="tip tip-warn">
+      <span class="ic" aria-hidden="true">！</span>
+      <span><b>「最終確認」請等十家都評完再按。</b>
+      按下去之後分數就封存不能改了；真的按錯也沒關係，<b>告訴主辦單位</b>就可以幫您重新開放。</span>
+    </div>
+  </section>
+
+  <!-- ══════ 詳細說明 ══════ -->
+  <section class="card">
+    <h2>畫面上有什麼<span class="sub">由上而下依序說明</span></h2>
+
+    <h3>最上方：您的姓名與進度圈</h3>
+    <p>右上角圓圈裡的 <span class="kbd">3/10</span> 表示「十家裡面您已經評完三家」。
+      評完一家數字就會加一，全部評完會變成 <span class="kbd">10/10</span>。</p>
+
+    <h3>公司列</h3>
+    <p>姓名下方那一排是十家決選公司，<b>點一下就切換</b>到那一家。
+      也可以用評分卡右上角的 <span class="kbd">← 上一家</span> <span class="kbd">下一家 →</span> 移動。
+      已經評完的公司會打勾，還沒評的一眼就看得出來。</p>
+
+    <h3>五大構面（滿分合計 100 分）</h3>
+    <div class="dims" id="dimList">
+      <div class="dimrow"><span class="i">1</span><span class="n">產品創新與行銷</span><span class="m gdim">上限 30 分</span></div>
+      <div class="dimrow"><span class="i">2</span><span class="n">市場需求與規模</span><span class="m gdim">上限 35 分</span></div>
+      <div class="dimrow"><span class="i">3</span><span class="n">技術門檻</span><span class="m gdim">上限 20 分</span></div>
+      <div class="dimrow"><span class="i">4</span><span class="n">經營團隊</span><span class="m gdim">上限 10 分</span></div>
+      <div class="dimrow"><span class="i">5</span><span class="n">財務狀況</span><span class="m gdim">上限 5 分</span></div>
+      <div class="dimtotal"><span>合計</span><span>100 分</span></div>
+    </div>
+    <ul>
+      <li>可以填到<b>小數點後兩位</b>（例如 27.5）。</li>
+      <li>數字框左右的 <span class="kbd">－</span> <span class="kbd">＋</span> 可以一次加減一分，
+        下面的橫桿也可以直接拖曳。</li>
+      <li>超過上限或忘記填，系統會用<b>紅字提醒</b>，並且不讓您送出，不會算錯分。</li>
+    </ul>
+
+    <h3>委員意見（可留空）</h3>
+    <p>對這家公司的觀察或建議，最多 300 字，會一併記錄給主辦單位。不想寫可以空著，不影響送出。</p>
+
+    <h3>最下方：總分與三顆按鈕</h3>
+    <ul>
+      <li><b>總分</b>會隨著您輸入即時累加，不必自己加。</li>
+      <li><span class="btnshot bs-blue">送出評分</span>存下這一家的分數，並自動跳下一家。</li>
+      <li><span class="btnshot bs-gray">查看所有公司評分</span>跳出一張總表，
+        點「檢視」可以回到任何一家<b>修改分數</b>。</li>
+      <li><span class="btnshot bs-gold">最終確認</span>十家都評完後的最後一步。</li>
+    </ul>
+
+    <div class="tip tip-ok">
+      <span class="ic" aria-hidden="true">✓</span>
+      <span><b>分數是存在雲端的。</b>不小心關掉頁面、手機沒電、換一台電腦，
+      只要再打開同一條專屬連結，之前評過的分數都還在。</span>
+    </div>
+  </section>
+
+  <!-- ══════ 最終確認 ══════ -->
+  <section class="card">
+    <h2>最終確認怎麼做<span class="sub">十家都評完之後的最後一步</span></h2>
+    <ul>
+      <li>十家評完時，系統會<b>自動跳出</b>最終確認視窗；沒跳出來就自己按
+        <span class="btnshot bs-gold">最終確認</span>。</li>
+      <li>視窗裡會列出<b>十家公司的完整分數</b>，請由上而下再看一次。</li>
+      <li>發現要改 → 按「再檢查一下」關掉視窗，回去修改後再重來一次即可。</li>
+      <li>確認無誤 → <b>勾選下方那一行聲明</b>（不勾選的話「確認送出」是灰色的，按不下去）。</li>
+      <li>按 <b>確認送出</b> → 出現「評分已完成」的畫面，就結束了。</li>
+    </ul>
+    <div class="tip tip-info">
+      <span class="ic" aria-hidden="true">i</span>
+      <span>還有公司沒評完時，視窗上方會用紅字告訴您<b>還差哪幾家</b>，
+      這時「確認送出」按不下去，這是正常的防呆設計。</span>
+    </div>
+  </section>
+
+  <!-- ══════ 疑難排解 ══════ -->
+  <section class="card">
+    <h2>遇到狀況怎麼辦</h2>
+
+    <div class="qa">
+      <div class="q">按了送出，出現「送出失敗」或畫面轉圈很久</div>
+      <div class="a">多半是網路不穩。<b>您填的分數不會不見</b>，系統會自動重試，
+        也可以直接再按一次送出。真的一直失敗就請現場工作人員協助。</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">畫面出現「利益迴避 — 本公司不需評分」</div>
+      <div class="a">這是正常的。主辦單位已依規定將這家公司排除在您的評分範圍外，
+        您的<b>進度圈和最終確認都已經自動扣掉這家</b>，請直接評其他公司即可，不必做任何處理。</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">不小心按了最終確認，但還想改分數</div>
+      <div class="a">請<b>直接告知主辦單位</b>。主辦單位在後台解除後，
+        您把頁面<b>重新整理</b>一次就可以繼續修改了。</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">畫面顯示「網址缺少評審參數」或「不在評審名單中」</div>
+      <div class="a">代表開啟的網址不是您的專屬連結（可能少複製了後面一段）。
+        請重新從主辦單位提供的原始連結或 QR Code 開啟。</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">可以用手機評分嗎？字太小看不清楚</div>
+      <div class="a">可以，手機、平板、電腦都支援。
+        覺得字小的話，手機用<b>兩指往外撥</b>放大；電腦按住
+        <span class="kbd">Ctrl</span>（Mac 是 <span class="kbd">⌘</span>）再按
+        <span class="kbd">＋</span> 就會放大整個畫面。</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">我的分數別人看得到嗎</div>
+      <div class="a">評分頁面只看得到<b>您自己</b>給的分數，看不到其他委員的評分。
+        彙整與排名由主辦單位在後台統一處理。</div>
+    </div>
+  </section>
+
+  <div class="foot">
+    第二屆 GISA 創櫃菁英選拔　決選評分系統<br>
+    操作上有任何問題，請直接洽現場主辦單位工作人員。
+  </div>
+</div>
+
+<script>
+document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+</script>
+</body>
+</html>

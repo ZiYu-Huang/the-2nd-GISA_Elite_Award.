@@ -134,6 +134,15 @@ button{cursor:pointer;border:none;background:none}
 .judge-chip .who{font-weight:700;font-size:15px}
 .judge-chip .org{font-size:11.5px;color:#c3d3e8;margin-top:1px}
 
+.help-link{
+  display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.28);
+  color:#e3ecf8;text-decoration:none;font-size:13px;font-weight:700;
+  padding:8px 14px;border-radius:999px;white-space:nowrap;
+}
+.help-link:hover{background:rgba(255,255,255,.2);color:#fff}
+.help-link::before{content:"？";font-weight:800;color:var(--gold-300)}
+
 .ring{position:relative;width:78px;height:78px;flex:0 0 auto}
 .ring svg{transform:rotate(-90deg);display:block}
 .ring .track{stroke:rgba(255,255,255,.2)}
@@ -488,6 +497,7 @@ table.grid tr:last-child td{border-bottom:none}
           <div class="org" id="judgeOrg">　</div>
         </div>
       </div>
+      <a class="help-link" href="guide.html" target="_blank" rel="noopener">操作說明</a>
       <div class="ring" title="評分進度">
         <svg width="78" height="78" viewBox="0 0 78 78" aria-hidden="true">
           <circle class="track" cx="39" cy="39" r="33" fill="none" stroke-width="6"></circle>

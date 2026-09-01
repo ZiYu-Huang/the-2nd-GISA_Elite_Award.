@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b2b57'/%3E%3Cpath d='M20 44V20h24' stroke='%23c8a34a' stroke-width='6' fill='none'/%3E%3Cpath d='M20 44h24V32H32' stroke='%23e3c887' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<title>主辦單位後台操作手冊 — 第二屆 GISA 創櫃菁英選拔</title>
+<style>
+:root{
+  --navy-900:#08213f; --navy-800:#0b2b57; --navy-700:#123f7d; --navy-600:#1a559f;
+  --gold-500:#c8a34a; --gold-300:#e3c887;
+  --page:#eef1f6; --surface:#fff; --surface-2:#f7f9fc;
+  --ink:#0f172a; --ink-2:#3d4c60; --ink-3:#6b7789;
+  --line:#e3e8f0; --line-strong:#cbd5e1;
+  --ok:#0b7a0b; --danger:#b42318;
+  --font:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--page);color:var(--ink);
+  font-size:17px;line-height:1.85;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+:focus-visible{outline:3px solid var(--navy-600);outline-offset:2px;border-radius:4px}
+b,strong{font-weight:800}
+
+.hero{background:linear-gradient(135deg,var(--navy-900),var(--navy-800) 55%,var(--navy-700));
+  color:#fff;padding:28px 22px;position:relative}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:4px;
+  background:linear-gradient(90deg,transparent,var(--gold-500),var(--gold-300),var(--gold-500),transparent)}
+.hero-in{max-width:1060px;margin:0 auto;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.mk{width:58px;height:58px;border-radius:14px;background:linear-gradient(150deg,var(--gold-300),var(--gold-500));
+  color:var(--navy-900);display:grid;place-items:center;font-weight:800;font-size:13px;line-height:1.15;text-align:center}
+.hero h1{margin:0;font-size:27px;font-weight:800;letter-spacing:.5px;line-height:1.35}
+.hero .s{font-size:15px;color:#c3d3e8;margin-top:5px}
+
+.wrap{max-width:1060px;margin:0 auto;padding:24px 22px 60px}
+.toolbar{display:flex;gap:11px;flex-wrap:wrap;margin-bottom:22px}
+.tb{padding:11px 18px;border-radius:11px;font-weight:800;font-size:15px;text-decoration:none;
+  border:2px solid var(--line-strong);background:var(--surface);color:var(--navy-700);display:inline-block}
+.tb:hover{background:#eef4fd;border-color:var(--navy-600)}
+.tb-p{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
+.tb-p:hover{background:var(--navy-700);color:#fff}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  padding:24px 26px;margin-bottom:22px;box-shadow:0 1px 2px rgba(15,23,42,.06),0 2px 10px rgba(15,23,42,.05)}
+h2{margin:0 0 10px;font-size:24px;font-weight:800;letter-spacing:.4px;line-height:1.4}
+h2 .sub{display:block;font-size:15px;font-weight:600;color:var(--ink-3);letter-spacing:0;margin-top:4px}
+h3{margin:24px 0 8px;font-size:19px;font-weight:800;color:var(--navy-700)}
+h3:first-child{margin-top:0}
+p{margin:0 0 12px}
+ul,ol{margin:8px 0 14px;padding-left:26px}
+li{margin-bottom:8px}
+code{font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);
+  border-radius:6px;padding:2px 7px;font-size:14.5px}
+
+/* 選單位置圖解 */
+.menubar{margin:16px 0 8px;border:2px solid var(--line-strong);border-radius:12px;overflow:hidden;
+  background:var(--surface-2);font-size:15px}
+.menubar .row{display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:11px 14px;
+  border-bottom:1.5px solid var(--line)}
+.menubar .row:last-child{border-bottom:none}
+.menubar .mi{padding:5px 11px;border-radius:7px;color:var(--ink-2);white-space:nowrap}
+.menubar .mi.hit{background:linear-gradient(135deg,var(--gold-500),#b08c34);color:var(--navy-900);
+  font-weight:800;box-shadow:0 2px 10px rgba(200,163,74,.45)}
+.menubar .sep{width:1.5px;height:22px;background:var(--line-strong);margin:0 8px}
+.menubar .pointer{padding:6px 14px 10px;font-size:15px;font-weight:800;color:var(--navy-700)}
+
+.tip{border-radius:13px;padding:16px 20px;margin:16px 0;font-size:16px;line-height:1.8;
+  border:2px solid;display:flex;gap:13px;align-items:flex-start}
+.tip .ic{flex:0 0 auto;font-size:23px;line-height:1.35;font-weight:800}
+.tip-ok{background:#eefaee;border-color:#b7e3b7;color:#12500f}
+.tip-warn{background:#fff6e2;border-color:#e8c98a;color:#6d4300}
+.tip-danger{background:#fdeaea;border-color:#e0a3a3;color:#8a1f1f}
+.tip-info{background:#eef4fd;border-color:#c3d8f7;color:#123f7d}
+
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:16px}
+th,td{border:1px solid var(--line);padding:11px 13px;text-align:left;vertical-align:top}
+th{background:var(--navy-800);color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px}
+tbody tr:nth-child(even){background:var(--surface-2)}
+td.k{font-weight:800;color:var(--navy-800);white-space:nowrap}
+
+.task{border:1.5px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px;
+  background:var(--surface-2)}
+.task .t{font-size:19px;font-weight:800;color:var(--navy-800);margin-bottom:8px}
+.task ol{margin-bottom:0}
+
+.steps-num{counter-reset:s;list-style:none;padding-left:0}
+.steps-num li{counter-increment:s;position:relative;padding-left:42px;margin-bottom:12px}
+.steps-num li::before{content:counter(s);position:absolute;left:0;top:1px;
+  width:29px;height:29px;border-radius:50%;background:var(--navy-700);color:#fff;
+  display:grid;place-items:center;font-size:15px;font-weight:800}
+
+.foot{text-align:center;color:var(--ink-3);font-size:15px;line-height:1.9;margin-top:32px}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .hero h1{font-size:22px}
+  h2{font-size:21px}
+  .card{padding:18px 16px}
+  .wrap{padding:18px 14px 44px}
+  table{font-size:14.5px}
+  th,td{padding:9px 10px}
+}
+
+@media print{
+  body{background:#fff;font-size:11.5pt;line-height:1.65}
+  .hero{padding:12px 0;background:none;color:var(--ink)}
+  .hero::after{display:none}
+  .hero .s{color:var(--ink-3)}
+  .mk{display:none}
+  .hero h1{font-size:18pt}
+  .toolbar,.foot{display:none}
+  .wrap{padding:0;max-width:none}
+  .card{box-shadow:none;border-color:#999;padding:12px 14px;margin-bottom:12px;break-inside:avoid}
+  .task,.tip,table{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="mk">GISA<br>菁英</div>
+    <div>
+      <h1>主辦單位　後台操作手冊</h1>
+      <div class="s">第二屆 GISA 創櫃菁英選拔　決選評分系統</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <button class="tb tb-p" id="btnPrint" type="button">列印 ／ 存成 PDF</button>
+    <a class="tb" href="admin.html">前往後台監控</a>
+    <a class="tb" href="links.html">評審專屬連結</a>
+    <a class="tb" href="guide.html">評審委員操作說明</a>
+  </div>
+
+  <!-- ══════ 選單在哪裡 ══════ -->
+  <section class="card">
+    <h2>一、試算表選單在哪裡
+      <span class="sub">所有日常維護都在這個選單裡，安裝完成後不必再進 Apps Script 編輯器</span>
+    </h2>
+
+    <p>選單在 <b>Google 試算表本身的最上排功能表</b>，位置在「說明」的右邊，名稱是
+      <b>GISA 評分系統</b>：</p>
+
+    <div class="menubar">
+      <div class="row">
+        <span class="mi">檔案</span><span class="mi">編輯</span><span class="mi">查看</span>
+        <span class="mi">插入</span><span class="mi">格式</span><span class="mi">資料</span>
+        <span class="mi">工具</span><span class="mi">擴充功能</span><span class="mi">說明</span>
+        <span class="sep"></span>
+        <span class="mi hit">GISA 評分系統</span>
+      </div>
+      <div class="pointer">↑ 就在這裡（在試算表畫面，不是在 Apps Script 編輯器畫面）</div>
+    </div>
+
+    <h3>沒看到選單的三個原因</h3>
+    <ol>
+      <li><b>試算表分頁是在貼上程式之前開的</b> → 把該試算表分頁<b>重新整理</b>一次。
+        掛選單的程式只在「開啟試算表」的當下執行，程式貼上去的當下不會自動出現。</li>
+      <li><b>第一次使用需要授權</b> → 點下任一選單項目後，跟著 Google 的授權畫面按到底
+        （會出現「這個應用程式未經驗證」，點「進階」→「前往…（不安全）」是正常流程，
+        因為這支程式是您自己寫的）。</li>
+      <li><b>在 Apps Script 編輯器裡找</b> → <code>script.google.com</code> 的編輯器畫面
+        永遠不會有這個選單，請切回試算表分頁。</li>
+    </ol>
+
+    <h3>七個選單項目</h3>
+    <table>
+      <thead><tr><th style="width:34%">選單項目</th><th>什麼時候用</th></tr></thead>
+      <tbody>
+        <tr><td class="k">顯示後台金鑰</td><td>忘記金鑰時查詢，會一併顯示後台的完整網址（含金鑰），可直接複製貼上。</td></tr>
+        <tr><td class="k">設定 GitHub Pages 網址</td><td>輸入評分系統網址後，自動把每位評審的專屬連結回填到「評審名單」C 欄。</td></tr>
+        <tr><td class="k">重新整理名單快取</td><td>改過「公司名單」「評審名單」「迴避名單」之後，讓變更<b>立刻</b>生效（不用等 5 分鐘）。</td></tr>
+        <tr><td class="k">修復迴避名單下拉選單</td><td>評審或公司增減後，重新掛上「迴避名單」工作表的下拉選單。</td></tr>
+        <tr><td class="k">重新執行安裝</td><td>可重複執行，會補齊缺少的工作表與表頭，<b>不會</b>覆蓋既有分數。</td></tr>
+        <tr><td class="k">解除某位評審的最終確認</td><td>評審按錯最終確認、需要重新開放修改時使用。</td></tr>
+        <tr><td class="k">清空所有評分</td><td><b>彩排之後、正式活動之前</b>執行，清掉測試分數。會先跳確認視窗。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════ 活動當天 ══════ -->
+  <section class="card">
+    <h2>二、活動當天怎麼盯<span class="sub">後台網址：<code>…/admin.html?key=您的金鑰</code></span></h2>
+
+    <ol class="steps-num">
+      <li><b>開後台。</b>用選單「顯示後台金鑰」取得完整網址，或直接開 <code>admin.html</code> 後輸入金鑰。
+        後台<b>每 5 秒自動更新</b>，不必一直重新整理。</li>
+      <li><b>盯最上方兩張卡。</b>「評分完成度」看還有幾格沒填、「最終確認」看還有幾位委員沒送出。
+        兩張都滿了就代表評分階段結束。</li>
+      <li><b>catch 落後的委員。</b>切到「評審進度」分頁，最下方的「尚未完成的評分」
+        會明白列出<b>誰還沒評哪幾家</b>，可以直接去提醒。</li>
+      <li><b>看結果。</b>「最終成績表」就是最終排名，同分時系統會自動依決勝規則排序。</li>
+      <li><b>留存。</b>按工具列的「匯出 CSV」下載完整資料存檔；原始資料同時也在 Google 試算表裡。</li>
+    </ol>
+
+    <div class="tip tip-info">
+      <span class="ic" aria-hidden="true">i</span>
+      <span><b>投影模式</b>可以把後台放到大螢幕給評審或來賓看（字級加大、深色底）。
+      要注意投影出去會顯示各公司分數，請自行斟酌時機。</span>
+    </div>
+  </section>
+
+  <!-- ══════ 六個分頁 ══════ -->
+  <section class="card">
+    <h2>三、後台六個分頁在看什麼</h2>
+    <table>
+      <thead><tr><th style="width:24%">分頁</th><th>內容</th></tr></thead>
+      <tbody>
+        <tr><td class="k">最終成績表</td>
+          <td>預設看到的那一頁，<b>就是最後要用的成績表</b>。每家公司的各構面平均、總平均、名次，
+            已評人數會自動扣掉利益迴避的評審。同分時依「總分 → 產品創新＋市場需求 → 市場需求 → 產品創新」自動決勝。</td></tr>
+        <tr><td class="k">即時排名</td><td>評分過程中的即時名次變化，適合邊評邊看。</td></tr>
+        <tr><td class="k">評分矩陣</td><td>每位評審給每家公司的總分，顏色深淺代表高低；斜線代表還沒評、「迴避」代表利益迴避。</td></tr>
+        <tr><td class="k">構面分析</td><td>各公司五大構面的得分組成，看得出來是贏在哪個構面。</td></tr>
+        <tr><td class="k">評審進度</td><td>每位評審的進度、平均、全距、標準差（看得出寬嚴與鑑別度），以及「尚未完成的評分」清單。</td></tr>
+        <tr><td class="k">評語彙整</td><td>所有委員意見，可依公司篩選，適合會後整理回饋給參賽公司。</td></tr>
+      </tbody>
+    </table>
+
+    <div class="tip tip-ok">
+      <span class="ic" aria-hidden="true">✓</span>
+      <span><b>不需要再自己拉公式算名次。</b>「最終成績表」已經把平均、名次、同分決勝、
+      以及利益迴避造成的人數差異全部算好了，並可直接匯出 CSV。</span>
+    </div>
+  </section>
+
+  <!-- ══════ 常見任務 ══════ -->
+  <section class="card">
+    <h2>四、常見任務怎麼做</h2>
+
+    <div class="task">
+      <div class="t">評審不小心按了最終確認，要重新開放修改</div>
+      <ol>
+        <li>試算表選單 →「解除某位評審的最終確認」</li>
+        <li>輸入該評審的<b>完整姓名職稱</b>（例如 <code>簡立忠董事長</code>，要跟名單上一字不差）</li>
+        <li>請該評審把評分頁面<b>重新整理</b>一次，就能繼續修改了</li>
+      </ol>
+    </div>
+
+    <div class="task">
+      <div class="t">新增或修改評審委員</div>
+      <ol>
+        <li>在「評審名單」工作表直接新增一列：A 欄單位、B 欄姓名職稱</li>
+        <li>選單 →「重新整理名單快取」（不做的話最多要等 5 分鐘）</li>
+        <li>選單 →「設定 GitHub Pages 網址」重新產生連結，或直接開 <code>links.html</code> 取得該委員的連結與 QR Code</li>
+      </ol>
+    </div>
+
+    <div class="task">
+      <div class="t">設定利益迴避（某位評審不評某家公司）</div>
+      <ol>
+        <li>在「迴避名單」工作表新增一列：A 欄選<b>評審</b>、B 欄選<b>決選公司</b>（都是下拉選單），C 欄可填備註</li>
+        <li>選單 →「重新整理名單快取」</li>
+        <li>該評審重新整理頁面後，這家公司會顯示「利益迴避」且<b>無法評分</b>；
+          他的應評家數與最終確認都會自動扣掉，後台的完成度分母也會跟著減少</li>
+      </ol>
+      <div class="tip tip-info" style="margin-bottom:0">
+        <span class="ic" aria-hidden="true">i</span>
+        <span>公司名稱要跟「公司名單」<b>完全一致</b>。若打錯字，後台「最終成績表」上方會跳出黃色提醒告訴您哪一列對不到。</span>
+      </div>
+    </div>
+
+    <div class="task">
+      <div class="t">彩排結束，要清掉測試分數</div>
+      <ol>
+        <li>選單 →「清空所有評分」→ 在確認視窗按確定</li>
+        <li>會清空「評分明細」與「最終確認」兩張表，公司、評審、迴避名單都不受影響</li>
+        <li>若名單裡還留著「測試評審」，正式活動前可以把該列刪掉，再執行一次「重新整理名單快取」</li>
+      </ol>
+    </div>
+
+    <div class="task">
+      <div class="t">產生／發送評審專屬連結</div>
+      <ol>
+        <li>選單 →「設定 GitHub Pages 網址」，輸入評分系統網址（例如 <code>https://帳號.github.io/repo/</code>）</li>
+        <li>連結會自動回填到「評審名單」C 欄，也可以打開 <code>links.html</code> 看到每位委員的連結與 QR Code</li>
+        <li><code>links.html</code> 按「列印 / 存成 PDF」可印成連結卡，或直接用 LINE／Email 個別發送</li>
+      </ol>
+    </div>
+
+    <div class="task">
+      <div class="t">忘記後台金鑰</div>
+      <ol>
+        <li>選單 →「顯示後台金鑰」，視窗會同時顯示金鑰與後台完整網址</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ══════ 改程式要重新部署 ══════ -->
+  <section class="card">
+    <h2>五、改過程式一定要重新部署<span class="sub">這是最容易踩、而且不會報錯的坑</span></h2>
+
+    <p>Apps Script 在編輯器改完程式並存檔之後，<b>對外服務的網址仍然在跑舊版程式碼</b>。
+      症狀是畫面一切正常、沒有任何錯誤訊息，但新的權重或迴避設定就是沒生效。</p>
+
+    <h3>正確的重新部署步驟</h3>
+    <ol class="steps-num">
+      <li>Apps Script 編輯器右上角 → <b>部署</b></li>
+      <li>選 <b>管理部署作業</b>（不是「新增部署作業」）</li>
+      <li>右上角的<b>鉛筆圖示</b>（編輯）</li>
+      <li>「版本」下拉選 <b>新版本</b></li>
+      <li>按 <b>部署</b></li>
+    </ol>
+
+    <div class="tip tip-danger">
+      <span class="ic" aria-hidden="true">!</span>
+      <span><b>不要用「新增部署作業」。</b>那會產生一個全新的網址，
+      您得回頭把 <code>index.html</code>、<code>admin.html</code>、<code>links.html</code>
+      三個檔案裡的 <code>API_URL</code> 全部改掉，否則系統會連到舊的後端。</span>
+    </div>
+
+    <div class="tip tip-warn">
+      <span class="ic" aria-hidden="true">⚠</span>
+      <span>若後台最上方出現紅色的 <b>「後端版本過舊」</b> 橫幅，
+      就是這個狀況——程式改了但沒重新部署。照上面五個步驟做完，重新整理後台即可，橫幅會自動消失。</span>
+    </div>
+  </section>
+
+  <!-- ══════ 計分規則 ══════ -->
+  <section class="card">
+    <h2>六、計分規則備忘</h2>
+
+    <h3>權重（2026 年度）</h3>
+    <table>
+      <thead><tr><th>構面</th><th style="width:26%">上限</th></tr></thead>
+      <tbody>
+        <tr><td>產品創新與行銷</td><td>30 分</td></tr>
+        <tr><td>市場需求與規模</td><td>35 分</td></tr>
+        <tr><td>技術門檻</td><td>20 分</td></tr>
+        <tr><td>經營團隊</td><td>10 分</td></tr>
+        <tr><td>財務狀況</td><td>5 分</td></tr>
+        <tr><td class="k">合計</td><td class="k">100 分</td></tr>
+      </tbody>
+    </table>
+    <p>可填到小數點後兩位。要調整權重需修改 <code>Code.gs</code> 與兩個網頁檔，改完<b>務必重新部署</b>。</p>
+
+    <h3>同分決勝</h3>
+    <p>總分相同 → 比「產品創新＋市場需求」的合計 → 再同分 → 比「市場需求」→ 再同分 → 比「產品創新」。
+      四項全部相同才視為並列。後台「最終成績表」已依此規則自動排序。</p>
+
+    <h3>利益迴避對計分的影響</h3>
+    <ul>
+      <li>該評審的<b>應評家數</b>減少（例如 10 家 → 7 家），少評的不算他缺交。</li>
+      <li>被迴避公司的<b>已評人數分母</b>也減少（例如 8 位 → 7 位），
+        平均分以<b>實際評分的人數</b>計算，所以不會因為少一個人評而吃虧。</li>
+    </ul>
+  </section>
+
+  <div class="foot">
+    第二屆 GISA 創櫃菁英選拔　決選評分系統<br>
+    評審委員端的操作說明請見 <a href="guide.html">評審委員操作說明</a>。
+  </div>
+</div>
+
+<script>
+document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+</script>
+</body>
+</html>
