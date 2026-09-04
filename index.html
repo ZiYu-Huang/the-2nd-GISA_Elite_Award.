@@ -670,7 +670,7 @@ table.grid tr:last-child td{border-bottom:none}
    ═══════════════════════════════════════════════════════════ */
 var API_URL = 'https://script.google.com/macros/s/AKfycbwc5y9LCuvER_FJZFvXh3irojGWSZuIkcy-BUbsjpZXksu9FjXyU3iURrv0rRehN3Hlqg/exec';   // ← 貼上 Apps Script 網頁應用程式的 /exec 網址
 // 後端 Code.gs 的 API_VERSION 必須 >= 這個數字，否則代表改了程式但忘了重新部署（僅在主控台提醒）
-var EXPECT_API = 2;
+var EXPECT_API = 3;
 
 /* 頁首主視覺圖片（可留空）
    留空 → 使用內建的 CSS 版 2026 主視覺（深藍星空＋青綠光束＋金色斜線）。
@@ -680,13 +680,15 @@ var EXPECT_API = 2;
 var BANNER_URL = '';
 
 /* ═══════════════════════ 常數 ═══════════════════════ */
+// 陣列順序＝評審填寫順序，要與 apps-script/Code.gs 的 DIMS 一致。
+// 序號（一～五）依位置自動產生，調順序時不會忘了改號碼。
 var DIMS = [
-  { key:'I', name:'產品創新與行銷', max:30, idx:'一' },
-  { key:'M', name:'市場需求與規模', max:35, idx:'二' },
-  { key:'T', name:'技術門檻',       max:20, idx:'三' },
-  { key:'E', name:'經營團隊',       max:10, idx:'四' },
-  { key:'F', name:'財務狀況',       max:5,  idx:'五' }
-];
+  { key:'M', name:'市場需求與規模', max:35 },
+  { key:'T', name:'技術門檻',       max:20 },
+  { key:'I', name:'產品創新與行銷', max:30 },
+  { key:'E', name:'經營團隊',       max:10 },
+  { key:'F', name:'財務狀況',       max:5  }
+].map(function(d, i){ d.idx = '一二三四五'.charAt(i); return d; });
 var MAX_TOTAL = DIMS.reduce(function(s,d){ return s + d.max; }, 0);
 var LS = 'gisa2.';
 var $  = function(s){ return document.querySelector(s); };
@@ -1533,6 +1535,15 @@ function boot(){
   jsonp({ action:'bootstrap', judge:JUDGE })
     .then(function(b){
       // 後端版本護欄：評審端不顯示橫幅（避免現場困惑），只在主控台提醒主辦單位
+      // 前後端的構面順序必須一致（後端決定試算表欄位，前端決定畫面順序）
+      if (b.dims && b.dims.length){
+        var back = b.dims.map(function(d){ return d.key; }).join(',');
+        var front = DIMS.map(function(d){ return d.key; }).join(',');
+        if (back !== front){
+          console.warn('[GISA] 前後端構面順序不一致：後端 ' + back + '，本頁 ' + front +
+            '。請確認 index.html 與 Code.gs 的 DIMS 相同，並重新部署 Apps Script。');
+        }
+      }
       if (!(Number(b.api) >= EXPECT_API)) {
         console.warn('[GISA] 後端未回報版本號或版本較舊（回報 api=' + b.api +
           '，本頁需要 ' + EXPECT_API + '）。Apps Script 上執行的程式碼比網站舊；' +

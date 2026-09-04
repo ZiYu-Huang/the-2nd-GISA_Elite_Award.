@@ -34,7 +34,7 @@
 /** 後端 API 版本。每次修改本檔案的計分規則（權重、迴避、決選邏輯）就 +1，
  *  後台會比對這個數字，若前端拿到的版本比預期舊，代表「改了程式但忘了重新部署」，
  *  後台會跳紅色警示。前端預期的版本寫在 admin.html 的 EXPECT_API。 */
-var API_VERSION = 2;
+var API_VERSION = 3;
 
 var SHEETS = {
   COMPANIES: '公司名單',
@@ -45,11 +45,13 @@ var SHEETS = {
   CONFIG:    '設定'
 };
 
-/** 五大構面。key 為前端欄位代號，順序即為試算表欄位順序。 */
+/** 五大構面。key 為前端欄位代號，**陣列順序即為評審填寫順序與試算表欄位順序**。
+ *  改順序時 index.html 的 DIMS 也要一起改，且務必重新部署後端、
+ *  並清空舊的評分資料（舊資料是照舊欄位順序寫的）。 */
 var DIMS = [
-  { key: 'I', name: '產品創新與行銷', max: 30 },
   { key: 'M', name: '市場需求與規模', max: 35 },
   { key: 'T', name: '技術門檻',       max: 20 },
+  { key: 'I', name: '產品創新與行銷', max: 30 },
   { key: 'E', name: '經營團隊',       max: 10 },
   { key: 'F', name: '財務狀況',       max: 5  }
 ];
@@ -160,9 +162,32 @@ function setupSheets() {
     sc = book.insertSheet(SHEETS.SCORES);
     sc.setFrozenRows(1);
   }
-  // 表頭每次都重寫：構面上限（例如 30 改成 35）調整後，標題才會跟著更新。
+  // 表頭每次都重寫：構面上限或順序調整後，標題才會跟著更新。
   // 只動第 1 列，不會碰到任何評分資料。
+  //
+  // 但構面「順序」改變時，既有的資料列不會跟著搬位置——舊資料仍照舊順序排列，
+  // 換了表頭之後就會對錯欄（例如把市場需求的分數當成產品創新讀）。
+  // 這裡先比對舊表頭，發現順序變了又還有資料，就明確提醒主辦單位先清空。
+  var oldHead = sc.getLastColumn()
+    ? sc.getRange(1, 1, 1, Math.max(sc.getLastColumn(), SCORE_WIDTH)).getValues()[0]
+    : [];
+  var dimOrderChanged = false;
+  for (var dh = 0; dh < DIMS.length; dh++) {
+    var was = String(oldHead[COL.DIM0 - 1 + dh] || '');
+    if (was && was !== SCORE_HEADERS[COL.DIM0 - 1 + dh]) { dimOrderChanged = true; break; }
+  }
+  var oldRows = Math.max(0, sc.getLastRow() - 1);
+
   sc.getRange(1, 1, 1, SCORE_WIDTH).setValues([SCORE_HEADERS]).setFontWeight('bold');
+
+  if (dimOrderChanged && oldRows > 0) {
+    uiAlert('請先清空舊評分',
+      '偵測到構面欄位已變更，但「' + SHEETS.SCORES + '」還有 ' + oldRows + ' 筆舊資料。\n\n' +
+      '這些資料是照「舊的欄位順序」寫入的，表頭更新後會對錯欄位' +
+      '（例如把某個構面的分數當成另一個構面讀）。\n\n' +
+      '請執行選單「清空所有評分（彩排後用）」清掉舊資料後再開始，' +
+      '若這些是正式資料請先自行備份。');
+  }
 
   // 4) 最終確認
   var cf = book.getSheetByName(SHEETS.CONFIRM);

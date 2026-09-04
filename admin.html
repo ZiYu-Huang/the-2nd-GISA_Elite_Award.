@@ -340,7 +340,7 @@ var KEY = new URLSearchParams(location.search).get('key') || localStorage.getIte
 
 // 本頁預期的後端 API 版本；後端 Code.gs 的 API_VERSION 必須 >= 這個數字。
 // 若後端較舊，代表 Apps Script 改了程式但沒有重新部署，畫面上的權重／迴避可能是舊的。
-var EXPECT_API = 2;
+var EXPECT_API = 3;
 
 var D = { v:-1, dims:[], projects:[], judges:[], records:[], recuse:{}, warnings:[] };
 var auto = true, timer = null, view = 'final', lastOk = 0;
@@ -408,12 +408,21 @@ function heatInk(v){
 /* ── 同分決勝：總分 → 創新＋市場 → 市場 → 創新 ───────────────
    （主辦單位指定的規則；各項都是「實際評分人數」的平均） */
 function nearly(a, b){ return Math.abs((a||0) - (b||0)) < 1e-9; }
-function dimSum(r){ return (r.dimAvg[0]||0) + (r.dimAvg[1]||0); }   // 產品創新 + 市場需求
+/* 構面一律用代號（I=產品創新、M=市場需求）查位置，不要寫死索引——
+   構面的顯示順序會改，寫死索引會讓決勝規則靜默用錯構面。 */
+function dimIdx(key){
+  for (var i = 0; i < D.dims.length; i++) if (D.dims[i].key === key) return i;
+  return -1;
+}
+function dimAvgOf(r, key){ var i = dimIdx(key); return (i < 0 ? 0 : (r.dimAvg[i] || 0)); }
+function dimSum(r){ return dimAvgOf(r,'I') + dimAvgOf(r,'M'); }   // 產品創新 + 市場需求
 function cmpRank(a, b){
-  if (!nearly(a.avg, b.avg))               return (b.avg||0) - (a.avg||0);
-  if (!nearly(dimSum(a), dimSum(b)))       return dimSum(b) - dimSum(a);
-  if (!nearly(a.dimAvg[1], b.dimAvg[1]))   return (b.dimAvg[1]||0) - (a.dimAvg[1]||0);
-  if (!nearly(a.dimAvg[0], b.dimAvg[0]))   return (b.dimAvg[0]||0) - (a.dimAvg[0]||0);
+  if (!nearly(a.avg, b.avg))         return (b.avg||0) - (a.avg||0);
+  if (!nearly(dimSum(a), dimSum(b))) return dimSum(b) - dimSum(a);
+  var aM = dimAvgOf(a,'M'), bM = dimAvgOf(b,'M');
+  if (!nearly(aM, bM))               return bM - aM;
+  var aI = dimAvgOf(a,'I'), bI = dimAvgOf(b,'I');
+  if (!nearly(aI, bI))               return bI - aI;
   return 0;
 }
 
@@ -471,8 +480,8 @@ function derive(){
       var prev = scored[i-1];
       if (nearly(prev.avg, r.avg)){
         if (!nearly(dimSum(prev), dimSum(r))) r.brokeBy = '創新＋市場';
-        else if (!nearly(prev.dimAvg[1], r.dimAvg[1])) r.brokeBy = '市場需求';
-        else if (!nearly(prev.dimAvg[0], r.dimAvg[0])) r.brokeBy = '產品創新';
+        else if (!nearly(dimAvgOf(prev,'M'), dimAvgOf(r,'M'))) r.brokeBy = '市場需求';
+        else if (!nearly(dimAvgOf(prev,'I'), dimAvgOf(r,'I'))) r.brokeBy = '產品創新';
       }
     }
   });
